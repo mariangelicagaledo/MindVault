@@ -10,13 +10,17 @@ namespace mindvault.Pages;
 
 public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
 {
+    readonly DatabaseService _db = ServiceHelper.GetRequiredService<DatabaseService>();
+
     public new string Title { get; }
+    public int ReviewerId { get; private set; }
 
     // simple deck
     public ObservableCollection<Card> Deck { get; } = new();
 
     int _index;
     bool _front = true;
+    bool _loaded;
 
     // stats (semi-functional demo)
     public int Avail => Deck.Count;
@@ -38,27 +42,54 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
 
     Card? Current => (_index >= 0 && _index < Deck.Count) ? Deck[_index] : null;
 
+    // Preferred ctor: pass id and title
+    public CourseReviewPage(int reviewerId, string title)
+    {
+        InitializeComponent();
+        ReviewerId = reviewerId;
+        Title = title;
+        BindingContext = this;
+        PageHelpers.SetupHamburgerMenu(this);
+    }
+
+    // Back-compat ctor: title only (resolve id on appearing)
     public CourseReviewPage(string title = "Math Reviewer")
     {
         InitializeComponent();
         Title = title;
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
+    }
 
-        // demo data - you can customize this based on the title
-        if (title.Contains("Math", StringComparison.OrdinalIgnoreCase))
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (ReviewerId <= 0)
         {
-            Deck.Add(new Card("What is 8 + 5?", "13"));
-            Deck.Add(new Card("What is 4 + 5?", "9"));
-            Deck.Add(new Card("What is 7 + 6?", "13"));
-        }
-        else
-        {
-            Deck.Add(new Card("Sample Question 1?", "Sample Answer 1"));
-            Deck.Add(new Card("Sample Question 2?", "Sample Answer 2"));
-            Deck.Add(new Card("Sample Question 3?", "Sample Answer 3"));
+            // Resolve by title if only title was provided
+            var reviewers = await _db.GetReviewersAsync();
+            var match = reviewers.FirstOrDefault(r => r.Title == Title);
+            if (match is not null)
+                ReviewerId = match.Id;
         }
 
+        if (_loaded) return;
+        await LoadDeckAsync();
+        _loaded = true;
+    }
+
+    async Task LoadDeckAsync()
+    {
+        Deck.Clear();
+        if (ReviewerId > 0)
+        {
+            var cards = await _db.GetFlashcardsAsync(ReviewerId);
+            foreach (var c in cards)
+                Deck.Add(new Card(c.Question, c.Answer));
+        }
+        _index = 0;
+        _front = true;
+        Seen = 0; Learned = 0; Skilled = 0; Memorized = 0;
         UpdateBindingsAll();
     }
 

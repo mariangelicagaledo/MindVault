@@ -14,11 +14,13 @@ public static class NavigationService
     public static Task OpenTitle() => Go(nameof(Pages.TitleReviewerPage));
 
     // TitleReviewerPage:
-    public static Task CreateNewReviewer() => Go(nameof(Pages.ReviewerEditorPage));
+    public static Task CreateNewReviewer(int id, string title)
+        => Go($"{nameof(Pages.ReviewerEditorPage)}?id={id}&title={System.Uri.EscapeDataString(title)}");
     public static Task CloseTitleToReviewers() => ToRoot();
 
     // ReviewerEditorPage:
     public static Task CloseEditorToTitle() => Back(); // returns to TitleReviewerPage
+    public static Task CloseEditorToReviewers() => ToRoot();
 
     // ReviewersPage:
     public static Task OpenCourse() => Go(nameof(Pages.CourseReviewPage));
