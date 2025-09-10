@@ -11,27 +11,33 @@ public partial class TaglinePage : ContentPage
         InitializeComponent();
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
         // prevent double navigation if page re-appears
         if (_navigated) return;
-
         _navigated = true;
 
-        // If onboarding completed: choose destination based on whether profile name exists
-        if (OnboardingState.IsCompleted)
+        // Defer navigation off the appearing call to avoid Android crashes
+        Dispatcher.Dispatch(async () =>
         {
-            var route = ProfileState.HasName ? "///HomePage" : "///SetProfilePage";
-            await Shell.Current.GoToAsync(route);
-            return;
-        }
+            try
+            {
+                if (OnboardingState.IsCompleted)
+                {
+                    var route = ProfileState.HasName ? "///HomePage" : "///SetProfilePage";
+                    await Navigator.GoToAsync(route);
+                    return;
+                }
 
-        await Task.Delay(2000); // 2 seconds
-
-        // IMPORTANT: use an ABSOLUTE Shell route for ShellContent
-        // This fixes: "Relative routing to shell elements is not supported"
-        await Shell.Current.GoToAsync("///OnboardingPage");
+                await Task.Delay(2000); // 2 seconds splash
+                await Navigator.GoToAsync("///OnboardingPage");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TaglinePage] Navigation error: {ex}");
+            }
+        });
     }
 }

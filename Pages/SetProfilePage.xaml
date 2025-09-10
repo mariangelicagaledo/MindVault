@@ -100,15 +100,30 @@
       <!-- Gender icons (Font Awesome alias FAS) -->
       <Grid Grid.Row="3" ColumnDefinitions="*,*,*"
             HorizontalOptions="Fill" Margin="0,0,0,12">
-        <Label Grid.Column="0" Text="&#xF182;" FontFamily="FAS"
+        <!-- Female: use Venus symbol (circle with cross) for consistency -->
+        <Label x:Name="FemaleIcon" Grid.Column="0" Text="&#xF221;" FontFamily="FAS"
                FontSize="58" TextColor="#FF2B78"
-               HorizontalOptions="Center" VerticalOptions="Center"/>
-        <Label Grid.Column="1" Text="&#xF222;" FontFamily="FAS"
+               HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnFemaleTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
+        <!-- Male: Mars symbol (circle with arrow) -->
+        <Label x:Name="MaleIcon" Grid.Column="1" Text="&#xF222;" FontFamily="FAS"
                FontSize="58" TextColor="#1EA1FF"
-               HorizontalOptions="Center" VerticalOptions="Center"/>
-        <Label Grid.Column="2" Text="&#xF128;" FontFamily="FAS"
+               HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnMaleTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
+        <!-- Other/Unknown -->
+        <Label x:Name="OtherIcon" Grid.Column="2" Text="&#xF128;" FontFamily="FAS"
                FontSize="58" TextColor="#444"
-               HorizontalOptions="Center" VerticalOptions="Center"/>
+               HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnOtherTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
       </Grid>
 
       <!-- USERNAME -->

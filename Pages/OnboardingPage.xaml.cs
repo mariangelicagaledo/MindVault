@@ -8,6 +8,8 @@ public partial class OnboardingPage : ContentPage
     // NOTE: Icon is a Font Awesome glyph (e.g., "\uf02d"), not a filename.
     public ObservableCollection<OnboardingSlide> Slides { get; } = new();
 
+    bool _acted; // prevent double taps
+
     public OnboardingPage()
     {
         InitializeComponent();
@@ -52,16 +54,26 @@ public partial class OnboardingPage : ContentPage
 
     async void OnSkip(object sender, EventArgs e)
     {
-        // Mark onboarding as done and proceed to profile setup first
+        if (_acted) return; _acted = true;
         OnboardingState.IsCompleted = true;
-        await Shell.Current.GoToAsync("///SetProfilePage");
+        try
+        {
+            SkipBtn.IsEnabled = false; NextBtn.IsEnabled = false; LetsGoBtn.IsEnabled = false;
+            await Navigator.GoToAsync("///SetProfilePage");
+        }
+        finally { SkipBtn.IsEnabled = NextBtn.IsEnabled = LetsGoBtn.IsEnabled = true; }
     }
 
     async void OnLetsGo(object sender, EventArgs e)
     {
-        // Mark onboarding as done and proceed to profile setup first
+        if (_acted) return; _acted = true;
         OnboardingState.IsCompleted = true;
-        await Shell.Current.GoToAsync("///SetProfilePage");
+        try
+        {
+            SkipBtn.IsEnabled = false; NextBtn.IsEnabled = false; LetsGoBtn.IsEnabled = false;
+            await Navigator.GoToAsync("///SetProfilePage");
+        }
+        finally { SkipBtn.IsEnabled = NextBtn.IsEnabled = LetsGoBtn.IsEnabled = true; }
     }
 }
 
