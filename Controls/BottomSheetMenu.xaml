@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="mindvault.Controls.BottomSheetMenu"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    IsVisible="False">
+
+  <Grid x:Name="Overlay" BackgroundColor="#66000000" Opacity="0">
+    <!-- close when tapping the dim background -->
+    <Grid.GestureRecognizers>
+      <TapGestureRecognizer Tapped="OnBackdropTapped"/>
+    </Grid.GestureRecognizers>
+
+    <!-- Sheet -->
+    <Border x:Name="Sheet"
+            BackgroundColor="White"
+            StrokeThickness="0"
+            Padding="18,16"
+            TranslationY="420"
+            VerticalOptions="End"
+            StrokeShape="RoundRectangle 22,22,0,0">
+      <VerticalStackLayout Spacing="14">
+
+        <!-- Header -->
+        <Grid ColumnDefinitions="*,Auto" Padding="0,4,0,8">
+          <HorizontalStackLayout Spacing="8">
+            <!-- Replace with your logo if you have one -->
+            <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="20" TextColor="#6C4DF7"
+                   VerticalOptions="Center"/>
+            <Label Text="Mind Vault" FontAttributes="Bold" FontSize="20" TextColor="#6C4DF7"
+                   VerticalOptions="Center"/>
+          </HorizontalStackLayout>
+
+          <!-- close icon -->
+          <Border Grid.Column="1" WidthRequest="34" HeightRequest="34"
+                  Stroke="#EAE6FF" StrokeThickness="1"
+                  StrokeShape="Ellipse" BackgroundColor="White">
+            <Label Text="&#xF060;" FontFamily="FAS" FontSize="14" TextColor="#6C4DF7"
+                   HorizontalOptions="Center" VerticalOptions="Center"/>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnCloseTapped"/>
+            </Border.GestureRecognizers>
+          </Border>
+        </Grid>
+
+        <BoxView HeightRequest="1" BackgroundColor="#EAE6FF"/>
+
+        <!-- Items -->
+        <Grid ColumnDefinitions="Auto,*">
+          <Label Text="&#xF304;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Create Reviewer" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnCreateTapped"/></Grid.GestureRecognizers>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*">
+          <Label Text="&#xF002;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Browse Reviewer" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnBrowseTapped"/></Grid.GestureRecognizers>
+        </Grid> 
+
+        <!-- NEW: Multiplayer Mode -->
+        <Grid ColumnDefinitions="Auto,*">
+          <!-- users icon (Font Awesome: f0c0) -->
+          <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Multiplayer Mode" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnMultiplayerTapped"/></Grid.GestureRecognizers>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*">
+          <Label Text="&#xF019;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Import" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnImportTapped"/></Grid.GestureRecognizers>
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*">
+          <Label Text="&#xF093;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Export" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnExportTapped"/></Grid.GestureRecognizers>
+        </Grid>
+
+        <!-- bottom safe space -->
+        <BoxView HeightRequest="6" />
+      </VerticalStackLayout>
+    </Border>
+  </Grid>
+</ContentView> 

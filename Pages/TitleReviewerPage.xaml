@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.TitleReviewerPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- ===== THEME ===== -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#47505B</Color>
+    <Color x:Key="Divider">#E7E7E7</Color>
+
+    <!-- Card style -->
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.20" Radius="18">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Outlined pill -->
+    <Style x:Key="OutlinePill" TargetType="Border">
+      <Setter Property="HeightRequest" Value="56" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="BackgroundColor" Value="White" />
+      <Setter Property="Stroke" Value="{StaticResource Primary}" />
+      <Setter Property="StrokeThickness" Value="2" />
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.9"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Filled gradient pill -->
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="HeightRequest" Value="54" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 14" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="{StaticResource Primary}" Offset="0.0" />
+            <GradientStop Color="{StaticResource PrimaryDark}" Offset="1.0" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- ===== BACKGROUND GRADIENT ===== -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0.0" />
+      <GradientStop Color="#0B57C1" Offset="1.0" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- ===== HEADER ===== -->
+    <Border Grid.Row="0"
+            BackgroundColor="White"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18"
+            Padding="16,12"
+            Margin="0,0,0,6">
+      <Border.Shadow>
+        <Shadow Opacity="0.12" Radius="14">
+          <Shadow.Offset><Point X="0" Y="6"/></Shadow.Offset>
+        </Shadow>
+      </Border.Shadow>
+
+      <Grid ColumnDefinitions="Auto,*">
+        <controls:HamburgerButton x:Name="Burger"/>
+        <Label Grid.Column="1" Text="Create Reviewer"
+               FontAttributes="Bold" FontSize="20"
+               TextColor="{StaticResource TextPrimary}"
+               VerticalOptions="Center" HorizontalOptions="Start"/>
+      </Grid>
+    </Border>
+
+    <!-- ===== BODY ===== -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="18" Padding="16,12,16,28">
+
+        <!-- Hero / Intro -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="12">
+
+            <!-- logo -->
+            <Border BackgroundColor="#F3F6FF"
+                    StrokeThickness="0"
+                    StrokeShape="Ellipse"
+                    WidthRequest="64" HeightRequest="64"
+                    HorizontalOptions="Center">
+              <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="24"
+                     HorizontalOptions="Center" VerticalOptions="Center"
+                     TextColor="{StaticResource PrimaryDark}"/>
+            </Border>
+
+            <Label Text="CREATE A REVIEWER OR FLASHCARD SET"
+                   FontAttributes="Bold" FontSize="16"
+                   TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Start"/>
+
+            <Label Text="Welcome to your reviewer library!&#10;First, simply add a title for your reviewer!"
+                   FontSize="13" TextColor="{StaticResource TextSecondary}" />
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Action + Title field -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="16">
+
+            <!-- Outlined CTA -->
+            <Border Style="{StaticResource OutlinePill}">
+              <Grid ColumnDefinitions="Auto,*" VerticalOptions="Center">
+                <Label Text="&#xF044;" FontFamily="FAS" FontSize="18" TextColor="{StaticResource Primary}"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1" Text="CREATE REVIEWER"
+                       TextColor="{StaticResource TextPrimary}" FontAttributes="Bold"
+                       FontSize="16" VerticalOptions="Center"/>
+              </Grid>
+            </Border>
+
+            <!-- Field label -->
+            <Label Text="REVIEWER'S TITLE" FontAttributes="Bold"
+                   TextColor="{StaticResource TextPrimary}" FontSize="13" />
+
+            <!-- Underlined input -->
+            <Grid RowDefinitions="Auto,Auto">
+              <Entry x:Name="TitleEntry"
+                     Placeholder="e.g. Math Reviewer"
+                     BackgroundColor="Transparent"
+                     TextColor="{StaticResource TextPrimary}"
+                     PlaceholderColor="#9AA3AE"
+                     FontSize="15" />
+              <BoxView Grid.Row="1" HeightRequest="1"
+                       BackgroundColor="{StaticResource Divider}" />
+            </Grid>
+
+            <!-- Primary CTA -->
+            <Border Style="{StaticResource PrimaryPill}">
+              <Grid ColumnDefinitions="Auto,*" VerticalOptions="Center">
+                <Label Text="Create New Reviewer" Grid.Column="1" TextColor="White"
+                       FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCreateNewTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+
+          </VerticalStackLayout>
+        </Border>
+
+      </VerticalStackLayout>
+    </ScrollView>
+
+    <!-- Bottom sheet menu overlay (re-usable) -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage> 

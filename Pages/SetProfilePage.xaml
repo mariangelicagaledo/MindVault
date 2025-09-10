@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.SetProfilePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:mindvault.Pages"
+    x:DataType="local:SetProfilePage"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#0D63B6">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- BODY (plain white rectangle) -->
+    <Grid Grid.Row="1" BackgroundColor="White" Padding="24">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>   <!-- preview -->
+        <RowDefinition Height="Auto"/>   <!-- picker -->
+        <RowDefinition Height="Auto"/>   <!-- gender label -->
+        <RowDefinition Height="Auto"/>   <!-- gender icons -->
+        <RowDefinition Height="Auto"/>   <!-- username label -->
+        <RowDefinition Height="*"/>      <!-- form + save -->
+      </Grid.RowDefinitions>
+
+      <!-- BIG PREVIEW of selected avatar -->
+      <Border Grid.Row="0"
+              HorizontalOptions="Center"
+              Margin="0,8,0,16"
+              HeightRequest="160" WidthRequest="160"
+              StrokeThickness="0"
+              BackgroundColor="#FFFFFF">
+        <Border.StrokeShape>
+          <Ellipse/>
+        </Border.StrokeShape>
+        <Border.Shadow>
+          <Shadow Opacity="0.2" Radius="18">
+            <Shadow.Offset>
+              <Point X="6" Y="10"/>
+            </Shadow.Offset>
+          </Shadow>
+        </Border.Shadow>
+        <Border StrokeThickness="0" StrokeShape="Ellipse" BackgroundColor="#F0F0F0">
+          <Image Source="{Binding SelectedAvatar}" Aspect="AspectFill"/>
+        </Border>
+      </Border>
+
+      <!-- LINEAR AVATAR PICKER (no sliding) -->
+      <CollectionView Grid.Row="1"
+                      ItemsSource="{Binding Avatars}"
+                      SelectionMode="Single"
+                      SelectedItem="{Binding SelectedAvatar, Mode=TwoWay}"
+                      HeightRequest="100">
+        <CollectionView.ItemsLayout>
+          <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14"/>
+        </CollectionView.ItemsLayout>
+
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border x:Name="AvatarBorder"
+                    Padding="4"
+                    WidthRequest="76" HeightRequest="76"
+                    StrokeThickness="2"
+                    Stroke="#E0E0E0"
+                    BackgroundColor="White"
+                    StrokeShape="Ellipse">
+              <Border StrokeThickness="0" StrokeShape="Ellipse" BackgroundColor="#F0F0F0">
+                <Image Source="{Binding}" Aspect="AspectFill"/>
+              </Border>
+
+              <!-- selection highlight -->
+              <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                  <VisualState x:Name="Normal"/>
+                  <VisualState x:Name="Selected">
+                    <VisualState.Setters>
+                      <Setter TargetName="AvatarBorder"
+                              Property="VisualElement.BackgroundColor"
+                              Value="#1028B6D4"/>
+                      <Setter TargetName="AvatarBorder"
+                              Property="Border.Stroke"
+                              Value="#28B6D4"/>
+                      <Setter TargetName="AvatarBorder"
+                              Property="Border.StrokeThickness"
+                              Value="3"/>
+                    </VisualState.Setters>
+                  </VisualState>
+                </VisualStateGroup>
+              </VisualStateManager.VisualStateGroups>
+            </Border>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <!-- SELECT GENDER -->
+      <Label Grid.Row="2"
+             Text="SELECT GENDER :"
+             Margin="0,24,0,10"
+             TextColor="#555"
+             FontAttributes="Bold"/>
+
+      <!-- Gender icons (Font Awesome alias FAS) -->
+      <Grid Grid.Row="3" ColumnDefinitions="*,*,*"
+            HorizontalOptions="Fill" Margin="0,0,0,12">
+        <Label Grid.Column="0" Text="&#xF182;" FontFamily="FAS"
+               FontSize="58" TextColor="#FF2B78"
+               HorizontalOptions="Center" VerticalOptions="Center"/>
+        <Label Grid.Column="1" Text="&#xF222;" FontFamily="FAS"
+               FontSize="58" TextColor="#1EA1FF"
+               HorizontalOptions="Center" VerticalOptions="Center"/>
+        <Label Grid.Column="2" Text="&#xF128;" FontFamily="FAS"
+               FontSize="58" TextColor="#444"
+               HorizontalOptions="Center" VerticalOptions="Center"/>
+      </Grid>
+
+      <!-- USERNAME -->
+      <Label Grid.Row="4" Text="USERNAME :" Margin="0,4,0,8"
+             TextColor="#555" FontAttributes="Bold"/>
+
+      <!-- Input + rules + button -->
+      <VerticalStackLayout Grid.Row="5" Spacing="14">
+        <Border Stroke="#DDD" StrokeThickness="1" StrokeShape="RoundRectangle 22">
+          <Entry x:Name="UsernameEntry"
+                 Placeholder="Enter a username"
+                 HeightRequest="46"
+                 BackgroundColor="Transparent"
+                 TextColor="#111"
+                 PlaceholderColor="#999"
+                 ClearButtonVisibility="WhileEditing"
+                 Margin="16,8"/>
+        </Border>
+
+        <VerticalStackLayout Spacing="6" Margin="4,0,0,0">
+          <Label FontSize="12" TextColor="#666" Text="• Must be 4 to 15 characters long"/>
+          <Label FontSize="12" TextColor="#666" Text="• Can only contain letters, numbers."/>
+          <Label FontSize="12" TextColor="#666" Text="• Must start with a letter"/>
+          <Label FontSize="12" TextColor="#666" Text="• Cannot contain spaces or special characters (like @, #, !, etc.)"/>
+        </VerticalStackLayout>
+
+        <Button Text="SAVE"
+                HorizontalOptions="Center"
+                WidthRequest="170"
+                HeightRequest="46"
+                CornerRadius="23"
+                BackgroundColor="#28B6D4"
+                TextColor="White"
+                FontAttributes="Bold"
+                Margin="0,6,0,0"
+                Clicked="OnSaveClicked"/>
+      </VerticalStackLayout>
+    </Grid>
+  </Grid>
+</ContentPage>

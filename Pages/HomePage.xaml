@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- ===== THEME ===== -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#464B55</Color>
+    <Color x:Key="Divider">#EAEAEA</Color>
+
+    <!-- Card style -->
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.20" Radius="18">
+            <Shadow.Offset>
+              <Point X="0" Y="10" />
+            </Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Gradient primary pill -->
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="HeightRequest" Value="56" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="{StaticResource Primary}" Offset="0.0" />
+            <GradientStop Color="{StaticResource PrimaryDark}" Offset="1.0" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+
+      <!-- Press feedback -->
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.9"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Tiny link text -->
+    <Style x:Key="LinkText" TargetType="Label">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="TextColor" Value="{StaticResource Primary}"/>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- ===== BACKGROUND GRADIENT ===== -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0.0" />
+      <GradientStop Color="#0B57C1" Offset="1.0" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- ===== HEADER (floating, modern) ===== -->
+    <Border Grid.Row="0"
+            BackgroundColor="White"
+            StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18"
+            Padding="16,12"
+            Margin="0,0,0,6">
+      <Border.Shadow>
+        <Shadow Opacity="0.12" Radius="14">
+          <Shadow.Offset><Point X="0" Y="6"/></Shadow.Offset>
+        </Shadow>
+      </Border.Shadow>
+
+      <Grid ColumnDefinitions="Auto,*">
+        <controls:HamburgerButton x:Name="Burger" />
+        <Label Grid.Column="1" Text="Mind Vault" FontAttributes="Bold"
+               FontSize="22" TextColor="{StaticResource TextPrimary}"
+               HorizontalOptions="Center" VerticalOptions="Center" />
+      </Grid>
+    </Border>
+
+    <!-- ===== BODY ===== -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="18" Padding="16,12,16,28">
+
+        <!-- Hero card -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="12">
+            <!-- Logo (use your own logo.png) -->
+            <Border BackgroundColor="#F3F6FF"
+                    StrokeThickness="0"
+                    StrokeShape="Ellipse"
+                    WidthRequest="68" HeightRequest="68"
+                    HorizontalOptions="Center">
+              <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="26"
+                     HorizontalOptions="Center" VerticalOptions="Center"
+                     TextColor="{StaticResource PrimaryDark}" />
+            </Border>
+
+            <Label Text="THE ULTIMATE OFFLINE STUDY COMPANION FOR STUDENTS"
+                   FontAttributes="Bold" FontSize="16" TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Center"/>
+            <Label Text="Master any subject with personalized flashcards and smart review tools."
+                   FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
+            <Label Text="Create your own courses with ease—add notes, images, and auto-generated audio."
+                   FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
+            <Label Text="Learn effectively with a spaced-repetition system designed to boost memory."
+                   FontSize="13" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
+
+            <BoxView HeightRequest="1" BackgroundColor="{StaticResource Divider}" Margin="0,6"/>
+
+            <Label Text="100% Free—no subscription fees, ever!"
+                   FontAttributes="Bold" FontSize="13" TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Center"/>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Actions card -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="14">
+
+            <!-- Create Reviewer -->
+            <Border Style="{StaticResource PrimaryPill}">
+              <Grid ColumnDefinitions="Auto,*" VerticalOptions="Center">
+                <Label Text="&#xF044;" FontFamily="FAS" FontSize="20" TextColor="White"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1" Text="Create Reviewer" TextColor="White"
+                       FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCreateReviewerTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Style="{StaticResource LinkText}"
+                   Text="Create your own reviewer with your terms and definitions in minutes" />
+
+            <!-- Browse Reviewer -->
+            <Border Style="{StaticResource PrimaryPill}">
+              <Grid ColumnDefinitions="Auto,*" VerticalOptions="Center">
+                <Label Text="&#xF1C0;" FontFamily="FAS" FontSize="20" TextColor="White"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1" Text="Browse Reviewer" TextColor="White"
+                       FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBrowseReviewerTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Style="{StaticResource LinkText}"
+                   Text="Browse reviewers you created" />
+
+          </VerticalStackLayout>
+        </Border>
+
+      </VerticalStackLayout>
+    </ScrollView>
+
+    <!-- Reusable bottom sheet lives at top Grid level -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage>

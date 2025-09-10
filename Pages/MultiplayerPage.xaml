@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.MultiplayerPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- THEME -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#14181B</Color>
+    <Color x:Key="TextSecondary">#5B6673</Color>
+
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="18">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Big gradient action button -->
+    <Style x:Key="ActionButton" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
+      <Setter Property="Padding" Value="20,14" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#5EE2F5" Offset="0" />
+            <GradientStop Color="#6C4DF7" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Room code input pill -->
+    <Style x:Key="RoomCodePill" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="#0E2F3A" />
+      <Setter Property="Stroke" Value="#93D3E3" />
+      <Setter Property="StrokeThickness" Value="1" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
+      <Setter Property="Padding" Value="22,14" />
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- BACKGROUND -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- HEADER -->
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18"
+            Padding="12,10" Margin="0,0,0,10">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+        <controls:HamburgerButton x:Name="HamburgerButton" />
+        <Label Grid.Column="1" Text="MULTIPLAYER MODE"
+               FontAttributes="Bold" FontSize="18"
+               TextColor="{StaticResource TextPrimary}"
+               VerticalOptions="Center" />
+     
+      </Grid>
+    </Border>
+
+    <!-- BODY -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="16" Padding="16,0,16,28">
+
+        <!-- Hero -->
+        <Border Style="{StaticResource Card}">
+          <VerticalStackLayout Spacing="12" HorizontalOptions="Fill">
+            <Border BackgroundColor="#F3F6FF" StrokeThickness="0" StrokeShape="Ellipse"
+                    WidthRequest="72" HeightRequest="72" HorizontalOptions="Center">
+              <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="28"
+                     HorizontalOptions="Center" VerticalOptions="Center"
+                     TextColor="{StaticResource PrimaryDark}" />
+            </Border>
+            <Label Text="MULTIPLAYER MODE" FontAttributes="Bold"
+                   FontSize="18" TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Center"/>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Actions -->
+        <Border Style="{StaticResource Card}">
+          <VerticalStackLayout Spacing="16">
+
+            <!-- HOST -->
+            <Border Style="{StaticResource ActionButton}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Label Text="&#xF51E;" FontFamily="FAS" FontSize="16" TextColor="White"
+                       VerticalOptions="Center"/>  <!-- bell icon -->
+                <Label Grid.Column="1" Text="HOST" TextColor="White"
+                       FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnHostTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+
+            <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
+              <Label.FormattedText>
+                <FormattedString>
+                  <Span Text="The Host" TextColor="#1EA1FF" />
+                  <Span Text=" — reading the flashcards, guarding the bell, judging the answers, and keeping the game fair." />
+                </FormattedString>
+              </Label.FormattedText>
+            </Label>
+
+            <!-- PLAYER -->
+            <Border Style="{StaticResource ActionButton}">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="16" TextColor="White"
+                       VerticalOptions="Center"/>  <!-- users icon -->
+                <Label Grid.Column="1" Text="PLAYER" TextColor="White"
+                       FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnPlayerTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+
+               <!-- ENTER ROOM CODE (interactive) -->
+        <VerticalStackLayout Spacing="8" Margin="0,4,0,0">
+          <Label Text="Enter Room Code:" FontSize="12"
+                 TextColor="{StaticResource TextSecondary}"
+                 HorizontalTextAlignment="Center" />
+
+          <Border Style="{StaticResource RoomCodePill}" BackgroundColor="#1EA1FF" HorizontalOptions="Center" WidthRequest="260">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+              <!-- Real input field -->
+              <Entry x:Name="RoomCodeEntry"
+                     Placeholder="ABCDE"
+                     Text=""
+                     MaxLength="5"
+                     Keyboard="Chat"
+                     IsSpellCheckEnabled="False"
+                     IsTextPredictionEnabled="False"
+                     BackgroundColor="#1EA1FF"
+                     TextColor="White"
+                     PlaceholderColor="#D9EEFF"
+                     FontAttributes="Bold"
+                     HorizontalOptions="Fill"
+                     VerticalOptions="Center"
+                     Margin="0,-2,0,0"
+                     TextChanged="OnRoomCodeTextChanged"
+                     Completed="OnJoinCompleted" />
+
+              <!-- White circle check button -->
+              <Border x:Name="JoinBtn"
+                      Grid.Column="1"
+                      StrokeShape="Ellipse"
+                      WidthRequest="36" HeightRequest="36"
+                      BackgroundColor="White"
+                      StrokeThickness="0"
+                      Opacity="0.5"
+                      InputTransparent="True">
+                <Label x:Name="JoinIcon"
+                       Text="&#xF00C;" FontFamily="FAS" FontSize="16"
+                       TextColor="#93CFF9"
+                       HorizontalOptions="Center" VerticalOptions="Center" />
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnJoinTapped"/>
+                </Border.GestureRecognizers>
+              </Border>
+            </Grid>
+          </Border>
+        </VerticalStackLayout>
+
+            <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
+              <Label.FormattedText>
+                <FormattedString>
+                  <Span Text="The Player" TextColor="#1EA1FF" />
+                  <Span Text=" — racing to hit the bell, answering flashcards, and battling for the highest score." />
+                </FormattedString>
+              </Label.FormattedText>
+            </Label>
+
+          </VerticalStackLayout>
+        </Border>
+
+     
+
+      </VerticalStackLayout>
+    </ScrollView>
+    
+    <!-- Bottom sheet menu -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage>

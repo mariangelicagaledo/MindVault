@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.CourseReviewPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- THEME -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#59636F</Color>
+    <Color x:Key="Accent">#0E6A85</Color>
+    <Color x:Key="BarBg">#F2F6FA</Color>
+
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+      <Setter Property="Padding" Value="12" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="Pill" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="BackgroundColor" Value="#2B6B8A" />
+      <Setter Property="HorizontalOptions" Value="Center" />
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- BACKGROUND -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- HEADER -->
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18" Padding="12,10" Margin="0,0,0,8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalOptions="Center">
+        <controls:HamburgerButton x:Name="HamburgerButton" />
+
+        <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+          <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="18"
+                 TextColor="{StaticResource TextPrimary}" />
+          <Label Text="&#xF013;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource Primary}">
+            <Label.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnSettingsTapped"/>
+            </Label.GestureRecognizers>
+          </Label>
+        </HorizontalStackLayout>
+
+        <!-- (optional) settings icon space already above; here is close X -->
+        <Border Grid.Column="3" WidthRequest="34" HeightRequest="34"
+                Stroke="#E8EDF2" StrokeThickness="1" StrokeShape="Ellipse" BackgroundColor="White">
+          <Label Text="&#xF00D;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}"
+                 HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnCloseTapped"/>
+          </Border.GestureRecognizers>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- BODY -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="12" Padding="16,0,16,24">
+
+        <!-- Progress bar -->
+        <Border BackgroundColor="{StaticResource BarBg}" HeightRequest="14"
+                StrokeThickness="0" StrokeShape="RoundRectangle 8">
+          <Border BackgroundColor="{StaticResource PrimaryDark}" StrokeThickness="0"
+                  StrokeShape="RoundRectangle 8"
+                  HorizontalOptions="Start" WidthRequest="{Binding ProgressWidth}" />
+        </Border>
+
+        <!-- Stats strip -->
+        <Border Style="{StaticResource CardStyle}">
+          <Grid ColumnDefinitions="*,*,*,*,*" Padding="4,6">
+            <VerticalStackLayout Spacing="0" Grid.Column="0" HorizontalOptions="Center">
+              <Label Text="Avail" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+              <Label Text="{Binding Avail}" FontAttributes="Bold" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Spacing="0" Grid.Column="1" HorizontalOptions="Center">
+              <Label Text="Seen" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+              <Label Text="{Binding Seen}" FontAttributes="Bold" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Spacing="0" Grid.Column="2" HorizontalOptions="Center">
+              <Label Text="Learned" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+              <Label Text="{Binding Learned}" FontAttributes="Bold" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Spacing="0" Grid.Column="3" HorizontalOptions="Center">
+              <Label Text="Skilled" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+              <Label Text="{Binding Skilled}" FontAttributes="Bold" />
+            </VerticalStackLayout>
+            <VerticalStackLayout Spacing="0" Grid.Column="4" HorizontalOptions="Center">
+              <Label Text="Memorized" FontSize="11" TextColor="{StaticResource TextSecondary}" />
+              <Label Text="{Binding Memorized}" FontAttributes="Bold" />
+            </VerticalStackLayout>
+          </Grid>
+        </Border>
+
+        <!-- Flashcard -->
+        <Border Style="{StaticResource CardStyle}" Padding="14" HeightRequest="420">
+          <Grid>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="*"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Label Text="{Binding FaceTag}" Grid.Row="0" FontSize="12"
+                   TextColor="{StaticResource TextSecondary}" />
+
+            <Label Text="{Binding FaceText}" Grid.Row="1"
+                   FontSize="24" TextColor="{StaticResource TextPrimary}"
+                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+
+            <!-- Bottom of card: skip chip + speaker -->
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Padding="0,10,0,0">
+              <Border Grid.Column="1" BackgroundColor="#E6E6E6"
+                      StrokeShape="RoundRectangle 14" Padding="16,6" >
+                <HorizontalStackLayout Spacing="8">
+                  <Label Text="Skip" />
+                  <Label Text="&#xF061;" FontFamily="FAS" FontSize="12" />
+                </HorizontalStackLayout>
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnSkip"/>
+                </Border.GestureRecognizers>
+              </Border>
+
+              <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
+                      Stroke="#E8EDF2" StrokeThickness="1" StrokeShape="Ellipse" BackgroundColor="White" Margin="10,0,0,0">
+                <Label Text="&#xF028;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}"
+                       HorizontalOptions="Center" VerticalOptions="Center"/>
+              </Border>
+            </Grid>
+          </Grid>
+        </Border>
+
+        <!-- Bottom controls -->
+        <Grid ColumnDefinitions="*,Auto,*" Padding="6,4,6,0">
+          <!-- Fail -->
+          <Border Grid.Column="0" BackgroundColor="#C5D6E4" Style="{StaticResource Pill}">
+            <Grid ColumnDefinitions="Auto,*">
+              <Label Text="&#xF00D;" FontFamily="FAS" TextColor="{StaticResource Ink}" />
+              <Label Grid.Column="1" Text="" />
+            </Grid>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnFail"/>
+            </Border.GestureRecognizers>
+          </Border>
+
+          <!-- Flip -->
+          <Border Grid.Column="1" BackgroundColor="White" Style="{StaticResource Pill}" Margin="12,0">
+            <Label Text="Flip" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnFlip"/>
+            </Border.GestureRecognizers>
+          </Border>
+
+          <!-- Pass -->
+          <Border Grid.Column="2" BackgroundColor="#8AB8D3" Style="{StaticResource Pill}">
+            <Grid ColumnDefinitions="*,Auto">
+              <Label Text="" />
+              <Label Grid.Column="1" Text="&#xF00C;" FontFamily="FAS" TextColor="White" />
+            </Grid>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnPass"/>
+            </Border.GestureRecognizers>
+          </Border>
+        </Grid>
+
+      </VerticalStackLayout>
+    </ScrollView>
+    
+    <!-- Reusable bottom sheet lives at top Grid level -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage>

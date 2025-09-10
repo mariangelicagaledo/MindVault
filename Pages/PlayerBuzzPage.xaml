@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.PlayerBuzzPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False">
+
+  <!-- ===== Theme ===== -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#14181B</Color>
+    <Color x:Key="TextSecondary">#5A6673</Color>
+
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="16">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="AnswerPill" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
+      <Setter Property="Padding" Value="20,12" />
+      <Setter Property="HorizontalOptions" Value="Center" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#5EE2F5" Offset="0" />
+            <GradientStop Color="#6C4DF7" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- Background -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <ScrollView>
+    <VerticalStackLayout Spacing="16" Padding="16,22,16,28">
+
+      <!-- Big Bell Icon -->
+      <Border x:Name="Bell" WidthRequest="120" HeightRequest="120"
+              BackgroundColor="#F2B51E" StrokeThickness="0"
+              StrokeShape="RoundRectangle 60" HorizontalOptions="Center"
+              Padding="0" TranslationY="4">
+        <Label Text="&#xF0F3;" FontFamily="FAS" FontSize="48" TextColor="White"
+               HorizontalOptions="Center" VerticalOptions="Center"/>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnBellTapped"/>
+        </Border.GestureRecognizers>
+      </Border>
+
+      <!-- Answer button -->
+      <Border Style="{StaticResource AnswerPill}">
+        <Label Text="ANSWER" TextColor="Black" FontAttributes="Bold" FontSize="16"
+               HorizontalOptions="Center" />
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnAnswerTapped"/>
+        </Border.GestureRecognizers>
+      </Border>
+
+      <!-- Leaderboard -->
+      <Border Style="{StaticResource Card}" Margin="0,8,0,0">
+        <VerticalStackLayout Spacing="10">
+          <Label Text="LEADERBOARDS" FontAttributes="Bold" FontSize="13"
+                 HorizontalTextAlignment="Center" TextColor="{StaticResource TextPrimary}"/>
+
+          <CollectionView ItemsSource="{Binding Scores}" SelectionMode="None" HeightRequest="320">
+            <CollectionView.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" Padding="4,10" ColumnSpacing="10">
+                  <Label Text="{Binding Rank}" FontSize="18" VerticalOptions="Center" TextColor="{StaticResource TextPrimary}"/>
+
+                  <Grid Grid.Column="1">
+                    <Border WidthRequest="42" HeightRequest="42" StrokeShape="Ellipse" StrokeThickness="0" BackgroundColor="#E8DFFB">
+                      <Image Source="{Binding Image}" Aspect="AspectFill">
+                        <Image.Clip>
+                          <EllipseGeometry Center="21,21" RadiusX="21" RadiusY="21"/>
+                        </Image.Clip>
+                      </Image>
+                    </Border>
+                    <!-- tiny crown for rank 1 -->
+                    <Label IsVisible="{Binding IsLeader}"
+                           Text="&#xF521;" FontFamily="FAS" FontSize="12" TextColor="#F1C40F"
+                           TranslationX="-6" TranslationY="-6"/>
+                  </Grid>
+
+                  <Label Grid.Column="2" Text="{Binding Name}" FontSize="12"
+                         TextColor="{StaticResource TextSecondary}" VerticalOptions="Center"/>
+
+                  <Border Grid.Column="3" BackgroundColor="#0E6A85" StrokeThickness="0"
+                          StrokeShape="RoundRectangle 12" Padding="10,4" VerticalOptions="Center">
+                    <Label Text="{Binding PointsText}" FontSize="11" TextColor="White"/>
+                  </Border>
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

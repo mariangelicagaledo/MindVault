@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:mindvault.Pages"
+    x:Class="mindvault.Pages.OnboardingPage"
+    x:DataType="vm:OnboardingPage"
+    x:Name="Root"
+    Shell.NavBarIsVisible="False">
+
+  <!-- Use a 4-row grid so elements never overlap:
+       [0] Skip bar, [1] Carousel (fills), [2] Dots, [3] Bottom buttons -->
+  <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="24,24,24,16">
+    <Grid.Background>
+      <RadialGradientBrush Radius="0.9" Center="0.5,0.35">
+        <GradientStop Color="#7ED6F6" Offset="0.0"/>
+        <GradientStop Color="#0D63B6" Offset="1.0"/>
+      </RadialGradientBrush>
+    </Grid.Background>
+
+    <!-- [0] SKIP -->
+    <Grid Grid.Row="0">
+      <Button Text="Skip"
+              x:Name="SkipBtn"
+              BackgroundColor="Transparent"
+              TextColor="White"
+              Padding="12,8"
+              HorizontalOptions="End"
+              VerticalOptions="Center"
+              Clicked="OnSkip" />
+    </Grid>
+
+    <!-- [1] SLIDES -->
+    <Grid Grid.Row="1" Padding="0,8,0,8">
+      <CarouselView x:Name="Carousel"
+                    ItemsSource="{Binding Slides}"
+                    IndicatorView="{x:Reference Indicators}"
+                    IsSwipeEnabled="True"
+                    VerticalOptions="Fill"
+                    HorizontalOptions="Fill"
+                    PositionChanged="OnPositionChanged">
+        <CarouselView.ItemTemplate>
+          <DataTemplate x:DataType="vm:OnboardingSlide">
+            <Grid RowDefinitions="*,Auto,Auto" RowSpacing="12" Padding="0,16,0,0">
+              <!-- BIG ICON from Font Awesome -->
+              <Label Grid.Row="0"
+                     Text="{Binding Icon}"
+                     FontFamily="FAS"
+                     FontSize="120"
+                     HorizontalOptions="Center"
+                     VerticalOptions="Center"
+                     TextColor="White" />
+              <Label Grid.Row="1"
+                     Text="{Binding Title}"
+                     FontSize="28"
+                     FontAttributes="Bold"
+                     TextColor="White" />
+              <Label Grid.Row="2"
+                     Text="{Binding Subtitle}"
+                     FontSize="16"
+                     Opacity="0.9"
+                     TextColor="White" />
+            </Grid>
+          </DataTemplate>
+        </CarouselView.ItemTemplate>
+      </CarouselView>
+    </Grid>
+
+    <!-- [2] INDICATORS -->
+    <IndicatorView Grid.Row="2"
+                   x:Name="Indicators"
+                   IndicatorColor="white"
+                   SelectedIndicatorColor="#0D63B6"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center"
+                   Margin="0,12" />
+
+    <!-- [3] BOTTOM BAR -->
+    <Grid Grid.Row="3"
+          ColumnDefinitions="*,Auto"
+          Padding="0,8,0,0">
+
+      <!-- Let's Go -->
+      <Button x:Name="LetsGoBtn"
+              Grid.ColumnSpan="2"
+              Text="Let’s Go!"
+              FontSize="18"
+              CornerRadius="16"
+              HeightRequest="52"
+              BackgroundColor="White"
+              TextColor="#0D63B6"
+              IsVisible="False"
+              Clicked="OnLetsGo" />
+
+      <!-- Next FAB -->
+      <Button x:Name="NextBtn"
+              Grid.Column="1"
+              WidthRequest="56"
+              HeightRequest="56"
+              CornerRadius="28"
+              Margin="12,0,0,0"
+              BackgroundColor="white"
+              Clicked="OnNext"
+              HorizontalOptions="End"
+              VerticalOptions="Center">
+        <Button.ImageSource>
+          <FontImageSource Glyph="&#xF054;"
+                           FontFamily="FAS"
+                           Size="20"
+                           Color="#0D63B6"/>
+        </Button.ImageSource>
+      </Button>
+    </Grid>
+  </Grid>
+</ContentPage>

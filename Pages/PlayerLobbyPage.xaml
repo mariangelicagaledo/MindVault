@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.PlayerLobbyPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:mindvault.Pages"
+    Shell.NavBarIsVisible="False">
+
+  <!-- THEME -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#14181B</Color>
+    <Color x:Key="TextSecondary">#5B6673</Color>
+    <Color x:Key="Lavender">#DCCEF2</Color>
+
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Margin" Value="16,10" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="18">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Big gradient CTA -->
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 24" />
+      <Setter Property="Padding" Value="22,14" />
+      <Setter Property="HorizontalOptions" Value="Center" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#5EE2F5" Offset="0" />
+            <GradientStop Color="#6C4DF7" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- BACKGROUND -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+    
+    <!-- HEADER -->
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18"
+            Padding="12,10" Margin="0,0,0,10">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+        <!-- Back button -->
+        <Border WidthRequest="34" HeightRequest="34"
+                Stroke="#E8EDF2" StrokeThickness="1"
+                StrokeShape="Ellipse" BackgroundColor="White">
+          <Label Text="&#xF060;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}"
+                 HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnBackTapped"/>
+          </Border.GestureRecognizers>
+        </Border>
+        
+        <Label Grid.Column="1" Text="PLAYER LOBBY"
+               FontAttributes="Bold" FontSize="18"
+               TextColor="{StaticResource TextPrimary}"
+               VerticalOptions="Center" HorizontalOptions="Center" />
+        
+        <!-- Spacer to balance the layout -->
+        <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
+                Stroke="Transparent" StrokeThickness="0"
+                StrokeShape="Ellipse" BackgroundColor="Transparent" />
+      </Grid>
+    </Border>
+
+    <!-- BODY -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="8" Padding="16,0,16,28">
+
+        <!-- HERO / COPY -->
+        <Border Style="{StaticResource Card}">
+          <VerticalStackLayout Spacing="12">
+            <Border BackgroundColor="#F3F6FF" StrokeThickness="0" StrokeShape="Ellipse"
+                    WidthRequest="72" HeightRequest="72" HorizontalOptions="Center">
+              <!-- swap to your logo image if you have one -->
+              <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="28" TextColor="{StaticResource PrimaryDark}"
+                     HorizontalOptions="Center" VerticalOptions="Center"/>
+            </Border>
+
+            <Label Text="MULTIPLAYER MODE" FontAttributes="Bold" FontSize="18"
+                   HorizontalTextAlignment="Center" TextColor="{StaticResource TextPrimary}"/>
+
+            <Label Text="Alright Vaultees, here's the deal!" FontAttributes="Bold" FontSize="13"
+                   TextColor="{StaticResource TextPrimary}"/>
+
+            <Label FontSize="13" TextColor="{StaticResource TextSecondary}">
+              flashcards, a bell, and pure chaos. First one to smack the bell gets to answer, rack up points,
+              and flex that big brain energy. Highest score takes the crown as Study Champ. Let the battle of wits begin!
+            </Label>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- PARTICIPANTS -->
+        <Border Style="{StaticResource Card}">
+          <VerticalStackLayout Spacing="12">
+            <Label Text="{Binding ParticipantsHeader}" FontSize="14"
+                   TextColor="{StaticResource TextPrimary}" />
+
+            <CollectionView ItemsSource="{Binding Participants}" SelectionMode="None">
+              <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="4" />
+              </CollectionView.ItemsLayout>
+
+              <CollectionView.ItemTemplate>
+                <DataTemplate>
+                  <VerticalStackLayout Spacing="6" HorizontalOptions="Center" Margin="0,4">
+                    <Border WidthRequest="64" HeightRequest="64"
+                            BackgroundColor="{StaticResource Lavender}"
+                            StrokeThickness="0" StrokeShape="Ellipse">
+                      <Image Source="{Binding Image}" Aspect="AspectFill">
+                        <Image.Clip>
+                          <EllipseGeometry Center="32,32" RadiusX="32" RadiusY="32"/>
+                        </Image.Clip>
+                      </Image>
+                    </Border>
+                    <Label Text="{Binding Name}" FontSize="11"
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalTextAlignment="Center"/>
+                  </VerticalStackLayout>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- READY CTA -->
+        <Border Style="{StaticResource PrimaryPill}" Margin="0,10,0,0">
+          <Label Text="READY!" TextColor="White" FontAttributes="Bold" FontSize="16"
+                 HorizontalOptions="Center"/>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnReadyTapped"/>
+          </Border.GestureRecognizers>
+        </Border>
+
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+</ContentPage>

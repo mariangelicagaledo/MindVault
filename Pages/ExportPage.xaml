@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.ExportPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- ===== THEME ===== -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="HeaderStrip">#0E6A85</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#54606C</Color>
+    <Color x:Key="Divider">#E8EDF2</Color>
+
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+      <Setter Property="Padding" Value="18" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="BackgroundColor" Value="{StaticResource Ink}" />
+      <Setter Property="HorizontalOptions" Value="Fill" />
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- ===== BACKGROUND GRADIENT ===== -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- ===== HEADER ===== -->
+   <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0"
+        StrokeShape="RoundRectangle 0,0,18,18" Padding="12,10" Margin="0,0,0,6">
+  <Grid ColumnDefinitions="Auto,Auto,*,Auto" VerticalOptions="Center">
+    <!-- Hamburger Button -->
+    <controls:HamburgerButton x:Name="HamburgerButton" />
+
+    <!-- Title right beside burger -->
+    <Label Grid.Column="1" Text="EXPORT"
+           Margin="8,0,0,0"
+           FontAttributes="Bold" FontSize="18"
+           TextColor="{StaticResource TextPrimary}"
+           VerticalOptions="Center" />
+
+
+  </Grid>
+</Border>
+
+
+    <!-- ===== BODY ===== -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="16" Padding="16,0,16,28">
+
+        <!-- Info card -->
+        <Border Style="{StaticResource CardStyle}" Margin="0,0,0,8">
+          <VerticalStackLayout Spacing="12">
+            <!-- Logo circle -->
+            <Border BackgroundColor="#F3F6FF" StrokeThickness="0" StrokeShape="Ellipse"
+                    WidthRequest="64" HeightRequest="64" HorizontalOptions="Center">
+              <Label Text="&#xF0E7;" FontFamily="FAS" FontSize="24"
+                     HorizontalOptions="Center" VerticalOptions="Center"
+                     TextColor="{StaticResource PrimaryDark}" />
+            </Border>
+
+            <Label Text="EXPORT REVIEWER" FontAttributes="Bold" FontSize="16"
+                   TextColor="{StaticResource TextPrimary}" HorizontalTextAlignment="Center"/>
+
+            <Label Text="Click below to export your reviewer in TXT format."
+                   FontSize="13" TextColor="{StaticResource TextPrimary}" HorizontalTextAlignment="Center"/>
+
+            <Label FontSize="13" TextColor="{StaticResource TextSecondary}">
+              Once exported, you can easily share the file with other users via email, messaging apps, or cloud storage.
+              Simply send the exported file, and the recipient can import it directly into their app to access your content.
+            </Label>
+
+            <Label FontSize="13" TextColor="{StaticResource TextSecondary}">
+              This allows for seamless collaboration and sharing of study materials across devices!
+            </Label>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Reviewer card -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="12">
+            <!-- Header strip -->
+            <Border BackgroundColor="{StaticResource Ink}" StrokeThickness="0"
+                    StrokeShape="RoundRectangle 12" Padding="12,8" Margin="0,-6,0,0">
+              <Label Text="{Binding ReviewerTitle}" TextColor="White" FontAttributes="Bold"/>
+            </Border>
+
+            <Grid ColumnDefinitions="Auto,*" Padding="6,0,6,0">
+              <Label Text="Questions:" FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+              <Label Grid.Column="1" Text="{Binding QuestionsText}" FontSize="14"
+                     TextColor="{StaticResource TextPrimary}" />
+            </Grid>
+
+            <Border Style="{StaticResource PrimaryPill}">
+              <Label Text="EXPORT" TextColor="White" FontAttributes="Bold"
+                     HorizontalOptions="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnExportTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+          </VerticalStackLayout>
+        </Border>
+
+      </VerticalStackLayout>
+    </ScrollView>
+    
+    <!-- Reusable bottom sheet lives at top Grid level -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage>

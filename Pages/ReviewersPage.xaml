@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.ReviewersPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:mindvault.Controls"
+    Shell.NavBarIsVisible="False">
+
+  <!-- ===== THEME ===== -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Ink">#0D3848</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#55616E</Color>
+    <Color x:Key="Divider">#E8EDF2</Color>
+
+    <!-- Card style -->
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+      <Setter Property="Padding" Value="16" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Filled primary pill -->
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="StrokeShape" Value="RoundRectangle 20" />
+      <Setter Property="BackgroundColor" Value="{StaticResource Ink}" />
+      <Setter Property="Padding" Value="16,12" />
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Outlined picker container -->
+    <Style x:Key="OutlineField" TargetType="Border">
+      <Setter Property="Stroke" Value="{StaticResource Primary}" />
+      <Setter Property="StrokeThickness" Value="2" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="BackgroundColor" Value="White" />
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- ===== BACKGROUND GRADIENT ===== -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid x:Name="MainGrid" RowDefinitions="Auto,*">
+
+    <!-- ===== HEADER ===== -->
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0"
+            StrokeShape="RoundRectangle 0,0,18,18"
+            Padding="12,10" Margin="0,0,0,6">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+
+        <controls:HamburgerButton x:Name="HamburgerButton" />
+
+        <Label Grid.Column="1" Text="REVIEWERS"
+               FontAttributes="Bold" FontSize="18"
+               TextColor="{StaticResource TextPrimary}"
+               VerticalOptions="Center" HorizontalOptions="Start"/>
+
+        <!-- Search circle (non-functional) -->
+        <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
+                StrokeThickness="2" Stroke="{StaticResource Primary}"
+                StrokeShape="Ellipse" BackgroundColor="White">
+          <Label Text="&#xF002;" FontFamily="FAS" FontSize="14"
+                 TextColor="{StaticResource Primary}"
+                 HorizontalOptions="Center" VerticalOptions="Center"/>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- ===== BODY ===== -->
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Spacing="16" Padding="16,8,16,28">
+
+        <!-- YOUR REVIEWERS + sort -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="12">
+            <Label Text="YOUR REVIEWERS" FontAttributes="Bold" FontSize="16"
+                   TextColor="{StaticResource TextPrimary}"/>
+
+            <Grid RowDefinitions="Auto,Auto">
+              <Label Text="Sort by:" Grid.Row="0"
+                     FontSize="12" TextColor="{StaticResource TextSecondary}"/>
+
+              <Border Grid.Row="1" Style="{StaticResource OutlineField}">
+                <!-- Simple picker: All / Last Played -->
+                <Picker Title="Sort..."
+                        ItemsSource="{Binding SortOptions}"
+                        SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
+                        TextColor="{StaticResource TextPrimary}"
+                        FontSize="14"/>
+                <!-- Right dropdown chevron -->
+                <Label Text="&#xF078;" FontFamily="FAS" FontSize="12"
+                       HorizontalOptions="End" VerticalOptions="Center"
+                       TranslationX="-8" TextColor="{StaticResource Primary}"/>
+              </Border>
+            </Grid>
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- REVIEWER CARD LIST -->
+        <CollectionView ItemsSource="{Binding Reviewers}" SelectionMode="None">
+          <CollectionView.ItemTemplate>
+            <DataTemplate>
+              <Border Style="{StaticResource CardStyle}">
+                <VerticalStackLayout Spacing="12">
+
+                  <!-- Header strip -->
+                  <Grid ColumnDefinitions="*,Auto,Auto">
+                    <Border BackgroundColor="{StaticResource Ink}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 12"
+                            Padding="12,8"
+                            Margin="0,-6,0,0">
+                      <Label Text="{Binding Title}" TextColor="White" FontAttributes="Bold"/>
+                    </Border>
+
+                    <!-- trash/delete icon -->
+                    <Border Grid.Column="1" WidthRequest="28" HeightRequest="28"
+                            Stroke="#DDE4EA" StrokeThickness="1"
+                            StrokeShape="Ellipse" BackgroundColor="White"
+                            Margin="0,0,8,0">
+                      <Label Text="&#xF1F8;" FontFamily="FAS" FontSize="12" TextColor="#E74C3C"
+                             HorizontalOptions="Center" VerticalOptions="Center"/>
+                      <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDeleteTapped"/>
+                      </Border.GestureRecognizers>
+                    </Border>
+
+                    <!-- open/share icon -->
+                    <Border Grid.Column="2" WidthRequest="28" HeightRequest="28"
+                            Stroke="#DDE4EA" StrokeThickness="1"
+                            StrokeShape="Ellipse" BackgroundColor="White">
+                      <Label Text="&#xF35D;" FontFamily="FAS" FontSize="12" TextColor="{StaticResource Primary}"
+                             HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Border>
+                  </Grid>
+
+                  <!-- Content -->
+                  <VerticalStackLayout Spacing="10" Padding="6,0,6,0">
+                    <Grid ColumnDefinitions="Auto,Auto,*" VerticalOptions="Center">
+                      <Label Text="Questions:" FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+                      <Label Grid.Column="1" Text="{Binding Questions}" FontSize="14" FontAttributes="Bold"
+                             TextColor="{StaticResource TextPrimary}" Margin="4,0,0,0"/>
+                      <Label Grid.Column="2" Text="&#xF303;" FontFamily="FAS" FontSize="12"
+                             TextColor="{StaticResource Primary}" HorizontalOptions="Start" Margin="6,0,0,0"/>
+                    </Grid>
+
+                    <!-- Progress + due -->
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
+                      <Label Grid.Column="0" Grid.Row="0" Text="{Binding LearnedPercentText}"
+                             FontSize="12" TextColor="{StaticResource TextSecondary}"/>
+                      <Label Grid.Column="1" Grid.Row="0" Text="{Binding DueText}"
+                             FontSize="12" TextColor="#C5232D"/>
+
+                      <ProgressBar Grid.ColumnSpan="2" Grid.Row="1"
+                                   Progress="{Binding LearnedRatio}" HeightRequest="10"
+                                   BackgroundColor="#E6EEF3" Margin="0,4,0,0"/>
+                    </Grid>
+
+                    <!-- VIEW COURSE -->
+                    <Border Style="{StaticResource PrimaryPill}" Margin="0,6,0,0">
+                      <Label Text="VIEW COURSE" TextColor="White" FontAttributes="Bold"
+                             HorizontalOptions="Center" />
+                      <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnViewCourseTapped"/>
+                      </Border.GestureRecognizers>
+                    </Border>
+                  </VerticalStackLayout>
+
+                </VerticalStackLayout>
+              </Border>
+            </DataTemplate>
+          </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- IMPORT -->
+        <Border x:Name="ImportPill"
+                BackgroundColor="#0E2F3A"
+                Stroke="#93D3E3" StrokeThickness="1"
+                StrokeShape="RoundRectangle 22"
+                Padding="22,14"
+                HorizontalOptions="Center"
+                WidthRequest="260"
+                Margin="0,6,0,0">
+          <Label Text="+ IMPORT"
+                 FontAttributes="Bold" FontSize="16"
+                 TextColor="White"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"
+                 HorizontalTextAlignment="Center" />
+        </Border>
+
+      </VerticalStackLayout>
+    </ScrollView>
+    
+    <!-- Reusable bottom sheet lives at top Grid level -->
+    <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+  </Grid>
+</ContentPage>
