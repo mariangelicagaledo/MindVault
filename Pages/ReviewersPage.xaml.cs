@@ -10,6 +10,7 @@ using System.Linq;
 using System.IO;
 using System.Collections.Generic;
 using Microsoft.Maui.Devices;
+using System.Text.Json;
 
 namespace mindvault.Pages;
 
@@ -61,6 +62,9 @@ public partial class ReviewersPage : ContentPage
 
     readonly DatabaseService _db;
 
+    const string PrefReviewStatePrefix = "ReviewState_"; // from CourseReviewPage
+    const int MemorizedThreshold = 21;
+
     public ReviewersPage()
     {
         InitializeComponent();
@@ -86,13 +90,72 @@ public partial class ReviewersPage : ContentPage
             var cards = await _db.GetFlashcardsAsync(r.Id);
             var lastPlayed = Preferences.Get(GetLastPlayedKey(r.Id), DateTime.MinValue);
 
+            // Default fallbacks
+            double progressRatio = (cards.Count == 0) ? 0 : (double)cards.Count(c => c.Learned) / cards.Count;
+            string progressLabel = "Learned";
+            int dueNow = 0;
+
+            // Try restore saved review progress
+            try
+            {
+                var payload = Preferences.Get(PrefReviewStatePrefix + r.Id, null);
+                if (!string.IsNullOrWhiteSpace(payload))
+                {
+                    var dtos = JsonSerializer.Deserialize<List<CardStateDto>>(payload);
+                    if (dtos is not null && cards.Count > 0)
+                    {
+                        int total = cards.Count;
+                        int memorized = 0, skilled = 0, learned = 0, due = 0;
+                        var now = DateTime.UtcNow;
+                        foreach (var d in dtos)
+                        {
+                            var dueAt = new DateTime(d.DueAtTicks, DateTimeKind.Utc);
+                            if (!string.Equals(d.Stage, "Avail", StringComparison.OrdinalIgnoreCase) && dueAt <= now)
+                                due++;
+
+                            if (d.CountedMemorized || d.ReviewSuccessStreak >= MemorizedThreshold)
+                                memorized++;
+                            else if (d.CountedSkilled || d.ReviewSuccessStreak >= 1)
+                                skilled++;
+                            else if (d.InReview || string.Equals(d.Stage, "Learned", StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(d.Stage, "Skilled", StringComparison.OrdinalIgnoreCase) ||
+                                     string.Equals(d.Stage, "Memorized", StringComparison.OrdinalIgnoreCase))
+                                learned++;
+                        }
+
+                        // Highest attained section selection
+                        if (memorized > 0)
+                        {
+                            progressRatio = (double)memorized / total;
+                            progressLabel = "Memorized";
+                        }
+                        else if (skilled > 0)
+                        {
+                            progressRatio = (double)skilled / total;
+                            progressLabel = "Skilled";
+                        }
+                        else
+                        {
+                            progressRatio = (double)learned / total;
+                            progressLabel = "Learned";
+                        }
+                        dueNow = due;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[ReviewersPage] Parse progress failed for reviewer {r.Id}: {ex.Message}");
+            }
+
             var card = new ReviewerCard
             {
                 Id = r.Id,
                 Title = r.Title,
                 Questions = cards.Count,
-                LearnedRatio = (cards.Count == 0) ? 0 : (double)cards.Count(c => c.Learned) / cards.Count,
-                Due = 0,
+                ProgressRatio = progressRatio,
+                ProgressLabel = progressLabel,
+                Due = dueNow,
                 CreatedUtc = r.CreatedUtc,
                 LastPlayedUtc = lastPlayed == DateTime.MinValue ? null : lastPlayed
             };
@@ -326,6 +389,17 @@ public partial class ReviewersPage : ContentPage
             i++;
         }
     }
+
+    // Minimal DTO to read saved progress
+    record CardStateDto(
+        int Id,
+        string Stage,
+        long DueAtTicks,
+        bool InReview,
+        int ReviewSuccessStreak,
+        bool CountedSkilled,
+        bool CountedMemorized
+    );
 }
 
 public class ReviewerCard
@@ -333,14 +407,17 @@ public class ReviewerCard
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public int Questions { get; set; }
-    /// <summary>0..1</summary>
-    public double LearnedRatio { get; set; }
+
+    // Progress bar shows highest attained section ratio
+    public double ProgressRatio { get; set; }
+    public string ProgressLabel { get; set; } = "Learned";
+
     public int Due { get; set; }
 
     public DateTime CreatedUtc { get; set; }
     public DateTime? LastPlayedUtc { get; set; }
 
     // Convenience texts for binding
-    public string LearnedPercentText => $"{(int)(LearnedRatio * 100)}% Learned";
+    public string ProgressPercentText => $"{(int)(ProgressRatio * 100)}% {ProgressLabel}";
     public string DueText => $"{Due} due";
 }

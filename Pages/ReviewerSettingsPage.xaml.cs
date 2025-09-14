@@ -11,6 +11,7 @@ public partial class ReviewerSettingsPage : ContentPage
 
     const string PrefRoundSize = "RoundSize";
     const string PrefStudyMode = "StudyMode"; // "Default" or "Exam"
+    const string PrefReviewStatePrefix = "ReviewState_"; // matches CourseReviewPage
 
     int _roundSize;
 
@@ -94,6 +95,34 @@ public partial class ReviewerSettingsPage : ContentPage
             Preferences.Set(PrefRoundSize, _roundSize);
             UpdateChipUI();
             MessagingCenter.Send(this, "RoundSizeChanged", _roundSize);
+        }
+    }
+
+    private async void OnResetProgressTapped(object? sender, TappedEventArgs e)
+    {
+        var confirm = await this.DisplayAlert("Reset Progress", "This will erase your review progress for this course. Continue?", "Reset", "Cancel");
+        if (!confirm) return;
+
+        // We need the reviewer id to clear its saved state; try to resolve by title
+        try
+        {
+            var db = ServiceHelper.GetRequiredService<DatabaseService>();
+            var reviewers = await db.GetReviewersAsync();
+            var match = reviewers.FirstOrDefault(r => r.Title == ReviewerTitle);
+            if (match != null)
+            {
+                Preferences.Remove(PrefReviewStatePrefix + match.Id);
+                MessagingCenter.Send(this, "ProgressReset", match.Id);
+                await this.DisplayAlert("Progress Reset", "Your review progress has been cleared.", "OK");
+            }
+            else
+            {
+                await this.DisplayAlert("Not Found", "Could not resolve the current course.", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await this.DisplayAlert("Reset Failed", ex.Message, "OK");
         }
     }
 

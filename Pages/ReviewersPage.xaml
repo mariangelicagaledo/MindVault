@@ -195,13 +195,13 @@
 
                     <!-- Progress + due -->
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
-                      <Label Grid.Column="0" Grid.Row="0" Text="{Binding LearnedPercentText}"
+                      <Label Grid.Column="0" Grid.Row="0" Text="{Binding ProgressPercentText}"
                              FontSize="12" TextColor="{StaticResource TextSecondary}"/>
                       <Label Grid.Column="1" Grid.Row="0" Text="{Binding DueText}"
                              FontSize="12" TextColor="#C5232D"/>
 
                       <ProgressBar Grid.ColumnSpan="2" Grid.Row="1"
-                                   Progress="{Binding LearnedRatio}" HeightRequest="10"
+                                   Progress="{Binding ProgressRatio}" HeightRequest="10"
                                    BackgroundColor="#E6EEF3" Margin="0,4,0,0"/>
                     </Grid>
 
