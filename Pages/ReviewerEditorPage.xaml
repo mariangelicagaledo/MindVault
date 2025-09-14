@@ -179,6 +179,9 @@
 
                     <!-- ===== SAVED PANEL ===== -->
                     <Grid x:Name="SavedPanel" IsVisible="{Binding IsSaved}">
+                      <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCardTapped" />
+                      </Grid.GestureRecognizers>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>

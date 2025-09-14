@@ -56,6 +56,12 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
             });
         }
         RenumberSaved();
+
+        // If there are no existing cards, start with a blank editable card
+        if (Items.Count == 0)
+        {
+            Items.Add(new ReviewItem());
+        }
     }
 
     // === UI events from XAML ===
@@ -77,10 +83,35 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
 
     private async void OnAddNewTapped(object? sender, TappedEventArgs e)
     {
-        Items.Add(new ReviewItem()); // blank editable card
-        await Task.CompletedTask;
+        // Save the last unsaved (editing) card automatically before adding a new one
+        var editing = Items.LastOrDefault(x => !x.IsSaved);
+        if (editing is not null)
+        {
+            editing.IsSaved = true;
+            RenumberSaved();
+            await SaveAllAsync();
+        }
+
+        // Add a new blank editable card
+        Items.Add(new ReviewItem());
     }
 
+    private async void OnCardTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not Element el || el.BindingContext is not ReviewItem item) return;
+
+        // Save any other editing card first
+        var editing = Items.FirstOrDefault(x => !x.IsSaved);
+        if (editing is not null)
+        {
+            editing.IsSaved = true;
+            RenumberSaved();
+            await SaveAllAsync();
+        }
+
+        // Put tapped card into edit mode
+        item.IsSaved = false;
+    }
 
 
     // Check icon navigation handler
