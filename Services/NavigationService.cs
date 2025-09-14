@@ -30,5 +30,16 @@ public static class NavigationService
     public static Task CloseCourseToReviewers() => Back();
 
     // ReviewerSettingsPage:
-    public static Task CloseSettingsToReviewers() => Back();
+    public static async Task CloseSettingsToReviewers()
+    {
+        try
+        {
+            await Back();
+        }
+        catch
+        {
+            // Fallback if relative back fails
+            await Go(nameof(Pages.CourseReviewPage));
+        }
+    }
 }

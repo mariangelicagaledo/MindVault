@@ -108,23 +108,38 @@
           <Grid ColumnDefinitions="*,*,*,*,*" Padding="4,6">
             <VerticalStackLayout Spacing="0" Grid.Column="0" HorizontalOptions="Center">
               <Label Text="Avail" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-              <Label Text="{Binding Avail}" FontAttributes="Bold" />
+              <Label Text="{Binding Avail}" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+              <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBucketTapped" CommandParameter="Avail"/>
+              </VerticalStackLayout.GestureRecognizers>
             </VerticalStackLayout>
             <VerticalStackLayout Spacing="0" Grid.Column="1" HorizontalOptions="Center">
               <Label Text="Seen" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-              <Label Text="{Binding Seen}" FontAttributes="Bold" />
+              <Label Text="{Binding Seen}" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+              <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBucketTapped" CommandParameter="Seen"/>
+              </VerticalStackLayout.GestureRecognizers>
             </VerticalStackLayout>
             <VerticalStackLayout Spacing="0" Grid.Column="2" HorizontalOptions="Center">
               <Label Text="Learned" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-              <Label Text="{Binding Learned}" FontAttributes="Bold" />
+              <Label Text="{Binding Learned}" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+              <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBucketTapped" CommandParameter="Learned"/>
+              </VerticalStackLayout.GestureRecognizers>
             </VerticalStackLayout>
             <VerticalStackLayout Spacing="0" Grid.Column="3" HorizontalOptions="Center">
               <Label Text="Skilled" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-              <Label Text="{Binding Skilled}" FontAttributes="Bold" />
+              <Label Text="{Binding Skilled}" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+              <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBucketTapped" CommandParameter="Skilled"/>
+              </VerticalStackLayout.GestureRecognizers>
             </VerticalStackLayout>
             <VerticalStackLayout Spacing="0" Grid.Column="4" HorizontalOptions="Center">
               <Label Text="Memorized" FontSize="11" TextColor="{StaticResource TextSecondary}" />
-              <Label Text="{Binding Memorized}" FontAttributes="Bold" />
+              <Label Text="{Binding Memorized}" FontAttributes="Bold" TextColor="{StaticResource TextPrimary}" />
+              <VerticalStackLayout.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnBucketTapped" CommandParameter="Memorized"/>
+              </VerticalStackLayout.GestureRecognizers>
             </VerticalStackLayout>
           </Grid>
         </Border>

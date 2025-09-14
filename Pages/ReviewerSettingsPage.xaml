@@ -96,6 +96,9 @@
                     StrokeShape="RoundRectangle 10" HeightRequest="24">
               <Label Text="X CLOSE SETTINGS" FontAttributes="Bold" FontSize="12"
                      TextColor="#333" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCloseTapped"/>
+              </Border.GestureRecognizers>
             </Border>
 
             <Label Text="Your algorithm configuration for the course:" 
@@ -105,7 +108,7 @@
                    TextColor="{StaticResource TextPrimary}" HorizontalTextAlignment="Center"/>
 
             <!-- Mind Vault Default -->
-            <Border Style="{StaticResource ModeTile}" BackgroundColor="{StaticResource Primary}">
+            <Border x:Name="DefaultTile" Style="{StaticResource ModeTile}" BackgroundColor="{StaticResource Primary}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                 <Border BackgroundColor="#F3F6FF" StrokeThickness="0" StrokeShape="Ellipse"
                         WidthRequest="54" HeightRequest="54">
@@ -113,21 +116,27 @@
                          HorizontalOptions="Center" VerticalOptions="Center"
                          TextColor="{StaticResource PrimaryDark}"/>
                 </Border>
-                <Label Grid.Column="1" Text="Mind Vault Default" FontSize="16"
+                <Label x:Name="DefaultTileLabel" Grid.Column="1" Text="Mind Vault Default" FontSize="16"
                        FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
               </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnDefaultModeTapped"/>
+              </Border.GestureRecognizers>
             </Border>
             <Label Text="Suited towards regular learning speed and review of new terms"
                    FontSize="12" TextColor="{StaticResource TextSecondary}" />
 
             <!-- Exam Cram Mode -->
-            <Border Style="{StaticResource ModeTile}" BackgroundColor="#E2E2E2">
+            <Border x:Name="ExamTile" Style="{StaticResource ModeTile}" BackgroundColor="#E2E2E2">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                 <Label Text="&#xF5BD;" FontFamily="FAS" FontSize="24" TextColor="#666"
                        VerticalOptions="Center"/>
-                <Label Grid.Column="1" Text="EXAM CRAM MODE" FontSize="16"
+                <Label x:Name="ExamTileLabel" Grid.Column="1" Text="EXAM CRAM MODE" FontSize="16"
                        FontAttributes="Bold" TextColor="#555" VerticalOptions="Center"/>
               </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnExamModeTapped"/>
+              </Border.GestureRecognizers>
             </Border>
             <Label Text="Choose Exam Cram Mode for rapid learning with frequent term repetition"
                    FontSize="12" TextColor="{StaticResource TextSecondary}" />
@@ -141,18 +150,33 @@
             </Border>
 
             <HorizontalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,4,0,0">
-              <!-- Selected -->
-              <Border Style="{StaticResource ChipSelected}">
-                <Label Text="10" TextColor="White" FontAttributes="Bold" />
+              <!-- 10 -->
+              <Border x:Name="Round10Chip" Style="{StaticResource Chip}">
+                <Label Text="10" TextColor="{StaticResource TextPrimary}" FontAttributes="Bold" />
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnRoundSizeTapped" CommandParameter="10"/>
+                </Border.GestureRecognizers>
               </Border>
-              <Border Style="{StaticResource Chip}">
-                <Label Text="20" TextColor="{StaticResource TextPrimary}" />
+              <!-- 20 -->
+              <Border x:Name="Round20Chip" Style="{StaticResource Chip}">
+                <Label Text="20" TextColor="{StaticResource TextPrimary}" FontAttributes="Bold" />
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnRoundSizeTapped" CommandParameter="20"/>
+                </Border.GestureRecognizers>
               </Border>
-              <Border Style="{StaticResource Chip}">
-                <Label Text="30" TextColor="{StaticResource TextPrimary}" />
+              <!-- 30 -->
+              <Border x:Name="Round30Chip" Style="{StaticResource Chip}">
+                <Label Text="30" TextColor="{StaticResource TextPrimary}" FontAttributes="Bold" />
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnRoundSizeTapped" CommandParameter="30"/>
+                </Border.GestureRecognizers>
               </Border>
-              <Border Style="{StaticResource Chip}">
-                <Label Text="40" TextColor="{StaticResource TextPrimary}" />
+              <!-- 40 -->
+              <Border x:Name="Round40Chip" Style="{StaticResource Chip}">
+                <Label Text="40" TextColor="{StaticResource TextPrimary}" FontAttributes="Bold" />
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnRoundSizeTapped" CommandParameter="40"/>
+                </Border.GestureRecognizers>
               </Border>
             </HorizontalStackLayout>
 
