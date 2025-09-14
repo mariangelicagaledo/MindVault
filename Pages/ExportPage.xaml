@@ -129,6 +129,21 @@
                      TextColor="{StaticResource TextPrimary}" />
             </Grid>
 
+            <!-- Simple preview list of Q/A -->
+            <CollectionView ItemsSource="{Binding Cards}" SelectionMode="None" HeightRequest="320">
+              <CollectionView.ItemTemplate>
+                <DataTemplate>
+                  <Border StrokeThickness="0" BackgroundColor="#F7FAFC" StrokeShape="RoundRectangle 12" Padding="12" Margin="0,4,0,0">
+                    <VerticalStackLayout Spacing="6">
+                      <Label Text="{Binding Question}" FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+                      <BoxView HeightRequest="1" BackgroundColor="#E8EDF2"/>
+                      <Label Text="{Binding Answer}" FontSize="13" TextColor="{StaticResource TextSecondary}"/>
+                    </VerticalStackLayout>
+                  </Border>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
+
             <Border Style="{StaticResource PrimaryPill}">
               <Label Text="EXPORT" TextColor="White" FontAttributes="Bold"
                      HorizontalOptions="Center" />

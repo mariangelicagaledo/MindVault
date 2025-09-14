@@ -94,13 +94,11 @@
             <Label Text="IMPORT REVIEWER" FontAttributes="Bold" FontSize="16"
                    TextColor="{StaticResource TextPrimary}" HorizontalTextAlignment="Center"/>
 
-            <Label Text="Click below to import your reviewer."
+            <Label Text="Review the details below then tap IMPORT to finish."
                    FontSize="13" TextColor="{StaticResource TextPrimary}" HorizontalTextAlignment="Center"/>
 
             <Label FontSize="13" TextColor="{StaticResource TextSecondary}">
-              Once imported, you can access the reviewer directly within the app. This allows you to
-              easily integrate shared study materials into your personal library and continue learning
-              without interruption.
+              The file was read and parsed on your device. If everything looks correct, import it to add this reviewer and its cards to your library.
             </Label>
           </VerticalStackLayout>
         </Border>
@@ -120,6 +118,21 @@
               <Label Grid.Column="1" Text="{Binding QuestionsText}" FontSize="14"
                      TextColor="{StaticResource TextPrimary}" />
             </Grid>
+
+            <!-- Preview list of Q/A -->
+            <CollectionView ItemsSource="{Binding Cards}" SelectionMode="None" HeightRequest="320">
+              <CollectionView.ItemTemplate>
+                <DataTemplate>
+                  <Border StrokeThickness="0" BackgroundColor="#F7FAFC" StrokeShape="RoundRectangle 12" Padding="12" Margin="0,4,0,0">
+                    <VerticalStackLayout Spacing="6">
+                      <Label Text="{Binding Question}" FontSize="14" TextColor="{StaticResource TextPrimary}"/>
+                      <BoxView HeightRequest="1" BackgroundColor="#E8EDF2"/>
+                      <Label Text="{Binding Answer}" FontSize="13" TextColor="{StaticResource TextSecondary}"/>
+                    </VerticalStackLayout>
+                  </Border>
+                </DataTemplate>
+              </CollectionView.ItemTemplate>
+            </CollectionView>
 
             <Border Style="{StaticResource PrimaryPill}">
               <Label Text="IMPORT" TextColor="White" FontAttributes="Bold"

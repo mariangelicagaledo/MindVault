@@ -167,12 +167,15 @@
                       </Border.GestureRecognizers>
                     </Border>
 
-                    <!-- open/share icon -->
+                    <!-- export/share icon -->
                     <Border Grid.Column="2" WidthRequest="28" HeightRequest="28"
                             Stroke="#DDE4EA" StrokeThickness="1"
                             StrokeShape="Ellipse" BackgroundColor="White">
                       <Label Text="&#xF35D;" FontFamily="FAS" FontSize="12" TextColor="{StaticResource Primary}"
                              HorizontalOptions="Center" VerticalOptions="Center"/>
+                      <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnExportTapped"/>
+                      </Border.GestureRecognizers>
                     </Border>
                   </Grid>
 
@@ -250,6 +253,9 @@
                  HorizontalOptions="Center"
                  VerticalOptions="Center"
                  HorizontalTextAlignment="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnImportTapped"/>
+          </Border.GestureRecognizers>
         </Border>
 
       </VerticalStackLayout>

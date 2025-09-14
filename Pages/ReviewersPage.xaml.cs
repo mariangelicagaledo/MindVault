@@ -7,6 +7,9 @@ using System.Diagnostics;
 using mindvault.Data;
 using Microsoft.Maui.Storage;
 using System.Linq;
+using System.IO;
+using System.Collections.Generic;
+using Microsoft.Maui.Devices;
 
 namespace mindvault.Pages;
 
@@ -108,11 +111,7 @@ public partial class ReviewersPage : ContentPage
     void WireOnce()
     {
         if (_wired) return;
-        // Import pill
-        ImportPill.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigator.PushAsync(new ImportPage(), Navigation))
-        });
+        // Removed ImportPill extra wiring to avoid duplicating XAML tap handler
         _wired = true;
     }
 
@@ -224,6 +223,108 @@ public partial class ReviewersPage : ContentPage
     {
         Debug.WriteLine($"[ReviewersPage] OpenTitle() -> TitleReviewerPage");
         await NavigationService.OpenTitle();
+    }
+
+    private async void OnExportTapped(object? sender, EventArgs e)
+    {
+        if (sender is Border border && border.BindingContext is ReviewerCard reviewer)
+        {
+            try
+            {
+                // Fetch flashcards for this reviewer
+                var cards = await _db.GetFlashcardsAsync(reviewer.Id);
+                var list = cards.Select(c => (c.Question, c.Answer)).ToList();
+                // Navigate to ExportPage for preview
+                await Navigator.PushAsync(new ExportPage(reviewer.Title, list), Navigation);
+            }
+            catch (Exception ex)
+            {
+                await PageHelpers.SafeDisplayAlertAsync(this, "Export", ex.Message, "OK");
+            }
+        }
+    }
+
+    private async void OnImportTapped(object? sender, EventArgs e)
+    {
+        try
+        {
+            var fileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            {
+                { DevicePlatform.Android, new[] { "text/plain" } },
+                { DevicePlatform.iOS, new[] { "public.plain-text" } },
+                { DevicePlatform.MacCatalyst, new[] { "public.plain-text" } },
+                { DevicePlatform.WinUI, new[] { ".txt" } },
+            });
+
+            var pick = await FilePicker.PickAsync(new PickOptions
+            {
+                PickerTitle = "Select export file",
+                FileTypes = fileTypes
+            });
+            if (pick is null) return;
+
+            string content;
+            using (var stream = await pick.OpenReadAsync())
+            using (var reader = new StreamReader(stream))
+                content = await reader.ReadToEndAsync();
+
+            var (title, cards) = ParseExport(content);
+            if (cards.Count == 0)
+            {
+                await PageHelpers.SafeDisplayAlertAsync(this, "Import", "No cards found in file.", "OK");
+                return;
+            }
+
+            // Navigate to ImportPage to preview and confirm import
+            await Navigator.PushAsync(new ImportPage(title, cards), Navigation);
+        }
+        catch (Exception ex)
+        {
+            await PageHelpers.SafeDisplayAlertAsync(this, "Import Failed", ex.Message, "OK");
+        }
+    }
+
+    private (string Title, List<(string Q, string A)> Cards) ParseExport(string content)
+    {
+        var lines = content.Replace("\r", string.Empty).Split('\n');
+        string title = lines.FirstOrDefault(l => l.StartsWith("Reviewer:", StringComparison.OrdinalIgnoreCase))?.Substring(9).Trim() ?? "Imported Reviewer";
+        var cards = new List<(string Q, string A)>();
+        string? q = null;
+        foreach (var raw in lines)
+        {
+            var line = raw.Trim();
+            if (line.StartsWith("Q:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(q)) { cards.Add((q, string.Empty)); }
+                q = line.Substring(2).Trim();
+            }
+            else if (line.StartsWith("A:", StringComparison.OrdinalIgnoreCase))
+            {
+                var a = line.Substring(2).Trim();
+                if (!string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(a))
+                {
+                    cards.Add((q ?? string.Empty, a));
+                    q = null;
+                }
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(q)) cards.Add((q, string.Empty));
+        return (title, cards);
+    }
+
+    private async Task<string> EnsureUniqueTitleAsync(string title)
+    {
+        var existing = await _db.GetReviewersAsync();
+        if (!existing.Any(r => string.Equals(r.Title, title, StringComparison.OrdinalIgnoreCase)))
+            return title;
+        int i = 2;
+        while (true)
+        {
+            var candidate = $"{title} ({i})";
+            if (!existing.Any(r => string.Equals(r.Title, candidate, StringComparison.OrdinalIgnoreCase)))
+                return candidate;
+            i++;
+        }
     }
 }
 
