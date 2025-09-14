@@ -29,6 +29,9 @@
                    VerticalOptions="Center"/>
             <Label Text="Mind Vault" FontAttributes="Bold" FontSize="20" TextColor="#6C4DF7"
                    VerticalOptions="Center"/>
+            <HorizontalStackLayout.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnHeaderTapped" />
+            </HorizontalStackLayout.GestureRecognizers>
           </HorizontalStackLayout>
 
           <!-- close icon -->

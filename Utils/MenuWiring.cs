@@ -8,6 +8,15 @@ public static class MenuWiring
 {
     public static void Wire(BottomSheetMenu menu, INavigation nav)
     {
+        // Header tap -> Home
+        menu.HeaderTapped += async (_, __) =>
+        {
+            if (Shell.Current is not null)
+                await Navigator.GoToAsync(nameof(HomePage));
+            else
+                await Navigator.PushAsync(new HomePage(), nav);
+        };
+
         // Create Reviewer
         menu.CreateTapped += async (_, __) =>
         {
