@@ -118,6 +118,20 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     private async void OnCheckTapped(object? sender, EventArgs e)
     {
         Debug.WriteLine($"[ReviewerEditorPage] CloseEditorToReviewers() -> ReviewersPage");
+
+        // Finalize any in-progress (unsaved) cards that have content
+        bool changed = false;
+        foreach (var it in Items.Where(x => !x.IsSaved).ToList())
+        {
+            bool hasContent = !string.IsNullOrWhiteSpace(it.Question) || !string.IsNullOrWhiteSpace(it.Answer);
+            if (hasContent)
+            {
+                it.IsSaved = true;
+                changed = true;
+            }
+        }
+        if (changed) RenumberSaved();
+
         await SaveAllAsync();
         await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseEditorToReviewers(),
             "Could not return to reviewers");

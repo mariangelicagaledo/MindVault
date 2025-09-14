@@ -85,13 +85,16 @@
                TextColor="{StaticResource TextPrimary}"
                VerticalOptions="Center" HorizontalOptions="Start"/>
 
-        <!-- Search circle (non-functional) -->
+        <!-- Search circle -->
         <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
                 StrokeThickness="2" Stroke="{StaticResource Primary}"
                 StrokeShape="Ellipse" BackgroundColor="White">
           <Label Text="&#xF002;" FontFamily="FAS" FontSize="14"
                  TextColor="{StaticResource Primary}"
                  HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnSearchTapped" />
+          </Border.GestureRecognizers>
         </Border>
       </Grid>
     </Border>
@@ -99,6 +102,13 @@
     <!-- ===== BODY ===== -->
     <ScrollView Grid.Row="1">
       <VerticalStackLayout Spacing="16" Padding="16,8,16,28">
+
+        <!-- SearchBar (toggles when tapping magnifying glass) -->
+        <SearchBar x:Name="DeckSearchBar"
+                   IsVisible="{Binding IsSearchVisible}"
+                   Placeholder="Search reviewers..."
+                   Text="{Binding SearchText, Mode=TwoWay}"
+                   FontSize="14"/>
 
         <!-- YOUR REVIEWERS + sort -->
         <Border Style="{StaticResource CardStyle}">
@@ -111,16 +121,18 @@
                      FontSize="12" TextColor="{StaticResource TextSecondary}"/>
 
               <Border Grid.Row="1" Style="{StaticResource OutlineField}">
-                <!-- Simple picker: All / Last Played -->
-                <Picker Title="Sort..."
-                        ItemsSource="{Binding SortOptions}"
-                        SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
-                        TextColor="{StaticResource TextPrimary}"
-                        FontSize="14"/>
-                <!-- Right dropdown chevron -->
-                <Label Text="&#xF078;" FontFamily="FAS" FontSize="12"
-                       HorizontalOptions="End" VerticalOptions="Center"
-                       TranslationX="-8" TextColor="{StaticResource Primary}"/>
+                <Grid ColumnDefinitions="*,Auto">
+                  <!-- Sort picker -->
+                  <Picker Grid.Column="0" Title="Sort..."
+                          ItemsSource="{Binding SortOptions}"
+                          SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
+                          TextColor="{StaticResource TextPrimary}"
+                          FontSize="14"/>
+                  <!-- Right dropdown chevron -->
+                  <Label Grid.Column="1" Text="&#xF078;" FontFamily="FAS" FontSize="12"
+                         HorizontalOptions="End" VerticalOptions="Center"
+                         TranslationX="-8" TextColor="{StaticResource Primary}"/>
+                </Grid>
               </Border>
             </Grid>
           </VerticalStackLayout>
@@ -171,7 +183,11 @@
                       <Label Grid.Column="1" Text="{Binding Questions}" FontSize="14" FontAttributes="Bold"
                              TextColor="{StaticResource TextPrimary}" Margin="4,0,0,0"/>
                       <Label Grid.Column="2" Text="&#xF303;" FontFamily="FAS" FontSize="12"
-                             TextColor="{StaticResource Primary}" HorizontalOptions="Start" Margin="6,0,0,0"/>
+                             TextColor="{StaticResource Primary}" HorizontalOptions="Start" Margin="6,0,0,0">
+                        <Label.GestureRecognizers>
+                          <TapGestureRecognizer Tapped="OnEditTapped" />
+                        </Label.GestureRecognizers>
+                      </Label>
                     </Grid>
 
                     <!-- Progress + due -->
@@ -201,6 +217,23 @@
             </DataTemplate>
           </CollectionView.ItemTemplate>
         </CollectionView>
+
+        <!-- CREATE REVIEWER -->
+        <Border x:Name="CreatePill"
+                Style="{StaticResource PrimaryPill}"
+                HorizontalOptions="Center"
+                WidthRequest="260"
+                Margin="0,6,0,0">
+          <Label Text="+ CREATE REVIEWER"
+                 FontAttributes="Bold" FontSize="16"
+                 TextColor="White"
+                 HorizontalOptions="Center"
+                 VerticalOptions="Center"
+                 HorizontalTextAlignment="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnCreateReviewerTapped"/>
+          </Border.GestureRecognizers>
+        </Border>
 
         <!-- IMPORT -->
         <Border x:Name="ImportPill"
