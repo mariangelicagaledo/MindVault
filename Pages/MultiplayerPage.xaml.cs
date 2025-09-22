@@ -1,3 +1,4 @@
+using mindvault.Services;
 using mindvault.Utils;
 using System.Text.RegularExpressions;
 
@@ -7,17 +8,33 @@ public partial class MultiplayerPage : ContentPage
 {
     // Valid: exactly 5 alphanumeric (A–Z, 0–9)
     static readonly Regex CodeRx = new(@"^[A-Z0-9]{5}$", RegexOptions.Compiled);
+    private readonly MultiplayerService _multi;
 
     public MultiplayerPage()
     {
         InitializeComponent();
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
+        _multi = ServiceHelper.GetRequiredService<MultiplayerService>();
     }
 
     private async void OnHostTapped(object? sender, TappedEventArgs e)
     {
-        await PageHelpers.SafeNavigateAsync(this, async () => await Navigation.PushAsync(new HostLobbyPage()),
+        if (!_multi.HasLocalNetworkPath())
+        {
+            await DisplayAlert("Network", "Turn on Wi‑Fi hotspot or connect to a LAN/Wi‑Fi network, then try again.", "OK");
+            return;
+        }
+
+        var code = _multi.GenerateRoomCode();
+        var (ok, error) = await _multi.StartHostingAsync(code);
+        if (!ok)
+        {
+            await DisplayAlert("Hosting", error ?? "Failed to start hosting.", "OK");
+            return;
+        }
+
+        await PageHelpers.SafeNavigateAsync(this, async () => await Navigation.PushAsync(new HostLobbyPage(code)),
             "Could not open host lobby");
     }
 
@@ -69,8 +86,16 @@ public partial class MultiplayerPage : ContentPage
             return;
         }
 
-        // Demo: show confirmation (hook up real navigation later)
-        await DisplayAlert("Join", $"Joining room: {code}", "OK");
+        var (ok, error) = await _multi.DiscoverHostAsync(code);
+        if (!ok)
+        {
+            await DisplayAlert("Join", error ?? "Unable to find host on the local network.", "OK");
+            return;
+        }
+
+        _multi.SetJoinedRoom(code);
+        await PageHelpers.SafeNavigateAsync(this, async () => await Navigation.PushAsync(new PlayerLobbyPage()),
+            "Could not open player lobby");
     }
 
     // Fired when user presses the keyboard Done/Enter

@@ -27,6 +27,9 @@ public static class MauiProgram
             return db;
         });
 
+        // Multiplayer services
+        builder.Services.AddSingleton<MultiplayerService>();
+
 #if DEBUG
         builder.Logging.AddDebug();
 #endif

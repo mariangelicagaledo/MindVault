@@ -15,66 +15,6 @@
     <Color x:Key="TextSecondary">#5B6673</Color>
     <Color x:Key="OkGreen">#2ECC71</Color>
     <Color x:Key="DangerRed">#E74C3C</Color>
-    <Color x:Key="CardBg">#FFFFFF</Color>
-    <Color x:Key="InnerPlate">#F7F8FA</Color>
-
-    <!-- Outer white card -->
-    <Style x:Key="OuterCard" TargetType="Border">
-      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
-      <Setter Property="StrokeThickness" Value="0" />
-      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
-      <Setter Property="Padding" Value="14" />
-      <Setter Property="Margin" Value="0" />
-      <Setter Property="HorizontalOptions" Value="Center" />
-      <Setter Property="MaximumWidthRequest" Value="360" />
-      <Setter Property="Shadow">
-        <Setter.Value>
-          <Shadow Opacity="0.22" Radius="20">
-            <Shadow.Offset><Point X="0" Y="12"/></Shadow.Offset>
-          </Shadow>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
-    <!-- Inner raised plate (the “flashcard” surface) -->
-    <Style x:Key="InnerPlateStyle" TargetType="Border">
-      <Setter Property="BackgroundColor" Value="{StaticResource InnerPlate}" />
-      <Setter Property="StrokeShape" Value="RoundRectangle 16" />
-      <Setter Property="StrokeThickness" Value="0" />
-      <Setter Property="Padding" Value="12" />
-      <Setter Property="Shadow">
-        <Setter.Value>
-          <Shadow Opacity="0.18" Radius="18">
-            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
-          </Shadow>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
-    <!-- Small grey pill (Skip) -->
-    <Style x:Key="GreyPill" TargetType="Border">
-      <Setter Property="StrokeShape" Value="RoundRectangle 16" />
-      <Setter Property="BackgroundColor" Value="#E6E9EF" />
-      <Setter Property="Padding" Value="14,8" />
-      <Setter Property="HorizontalOptions" Value="Start" />
-    </Style>
-
-    <!-- Circle buttons -->
-    <Style x:Key="CircleBtn" TargetType="Border">
-      <Setter Property="StrokeShape" Value="Ellipse" />
-      <Setter Property="WidthRequest" Value="52" />
-      <Setter Property="HeightRequest" Value="52" />
-      <Setter Property="BackgroundColor" Value="White" />
-      <Setter Property="HorizontalOptions" Value="Center" />
-      <Setter Property="VerticalOptions" Value="Center" />
-      <Setter Property="Shadow">
-        <Setter.Value>
-          <Shadow Opacity="0.18" Radius="14">
-            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
-          </Shadow>
-        </Setter.Value>
-      </Setter>
-    </Style>
   </ContentPage.Resources>
 
   <!-- BACKGROUND -->
@@ -88,92 +28,52 @@
   <ScrollView>
     <VerticalStackLayout Spacing="16" Padding="16,20,16,28">
 
-      <!-- BIG FLASHCARD PANEL (fixed size like the mock) -->
-      <Border Style="{StaticResource OuterCard}"
-              WidthRequest="350"
-              HeightRequest="550"
-              Margin="0,6,0,0">
-        <Grid RowDefinitions="Auto,*,Auto" Padding="4">
-          <!-- raised inner plate -->
-          <Border Grid.RowSpan="3"
-                  Style="{StaticResource InnerPlateStyle}"
-                  Margin="6,10,6,12" />
+      <!-- FLASHCARD PANEL -->
+      <Border BackgroundColor="{StaticResource Surface}" StrokeThickness="0" StrokeShape="RoundRectangle 22"
+              WidthRequest="350" HeightRequest="420" Margin="0,6,0,0" HorizontalOptions="Center" Padding="14">
+        <Grid RowDefinitions="Auto,*,Auto">
+          <!-- header: deck title -->
+          <Label Grid.Row="0" Text="Deck" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource TextPrimary}"/>
 
-          <!-- [Back] -->
-          <Label Grid.Row="0" Text="[Back]" FontSize="11"
-                 TextColor="{StaticResource TextSecondary}"
-                 Margin="8,6,0,0"/>
-
-          <!-- content (centered) -->
-          <VerticalStackLayout Grid.Row="1" Spacing="8"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center"
-                               Padding="0,2">
-            <Label Text="&#xF00C;" FontFamily="FAS" FontSize="36"
-                   TextColor="{StaticResource OkGreen}"
-                   HorizontalOptions="Center"/>
-            <Label Text="CORRECT ONCE" FontAttributes="Bold" FontSize="18"
-                   TextColor="#2FB8D1" HorizontalTextAlignment="Center"/>
-            <Label Text="Due for practice in:" FontSize="13"
-                   TextColor="{StaticResource TextSecondary}"
-                   HorizontalTextAlignment="Center"/>
-            <Label Text="3 minutes, 31 seconds" FontSize="14"
-                   TextColor="#E74C3C" FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"/>
-            <Label Text="Correct: 1/1" FontSize="13"
-                   TextColor="{StaticResource TextSecondary}"
-                   Margin="0,6,0,0" HorizontalTextAlignment="Center"/>
+          <!-- center: question/answer text; tap to flip -->
+          <VerticalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+            <Label Text="Tap card to flip and reveal answer" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
+                        <Label Text="{Binding CurrentQuestion}" FontSize="20" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+            <Label Text="{Binding CurrentAnswer}" FontSize="16" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
           </VerticalStackLayout>
 
-          <!-- bottom controls -->
-          <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto"
-                Padding="0,2,0,0" Margin="8,0,8,8">
-            <!-- Skip pill + tiny round arrow -->
-            <Border Grid.Column="0" Style="{StaticResource GreyPill}">
-              <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
-                <Label Grid.Column="0" Text="Skip" FontSize="13" VerticalOptions="Center"/>
-                <Border Grid.Column="1"
-                        Style="{StaticResource CircleBtn}"
-                        WidthRequest="26" HeightRequest="26"
-                        BackgroundColor="#D8DDE6" Shadow="{x:Null}">
-                  <Label Text="&#xF105;" FontFamily="FAS" FontSize="12"
-                         HorizontalOptions="Center" VerticalOptions="Center"/>
-                </Border>
-              </Grid>
-              <Border.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnSkip"/>
-              </Border.GestureRecognizers>
-            </Border>
-
-            <Grid Grid.Column="1"/>
-
-            <!-- Speaker -->
-            <Border Grid.Column="2" Style="{StaticResource CircleBtn}">
-              <Label Text="&#xF028;" FontFamily="FAS" FontSize="18"
-                     TextColor="{StaticResource TextPrimary}"
+          <!-- bottom controls: audio icon (placeholder) -->
+          <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Padding="0,2,0,0" Margin="8,0,8,8">
+            <Grid Grid.Column="0"/>
+            <Border Grid.Column="1" BackgroundColor="White" StrokeShape="Ellipse" WidthRequest="42" HeightRequest="42">
+              <Label Text="&#xF028;" FontFamily="FAS" FontSize="18" TextColor="{StaticResource TextPrimary}"
                      HorizontalOptions="Center" VerticalOptions="Center"/>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnSpeakTapped"/>
+              </Border.GestureRecognizers>
             </Border>
           </Grid>
         </Grid>
+        <Border.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnFlip"/>
+        </Border.GestureRecognizers>
       </Border>
 
-      <!-- JUDGE BAR (tight spacing like the mock) -->
-      <Border Style="{StaticResource OuterCard}"
-              Margin="0,10,0,0" Padding="10">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto"
-              ColumnSpacing="12" VerticalOptions="Center">
-          <!-- avatar + name -->
-          <VerticalStackLayout Spacing="6" HorizontalOptions="Center" WidthRequest="78">
+      <!-- JUDGE BAR -->
+      <Border BackgroundColor="{StaticResource Surface}" StrokeThickness="0" StrokeShape="RoundRectangle 22" Padding="10">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="12" VerticalOptions="Center">
+          <!-- avatar + name of buzzer -->
+          <VerticalStackLayout Spacing="6" HorizontalOptions="Center" WidthRequest="78" IsVisible="{Binding HasBuzzWinner}">
             <Border WidthRequest="56" HeightRequest="56"
                     StrokeShape="Ellipse" StrokeThickness="0"
                     BackgroundColor="#E8DFFB">
-              <Image Source="avatar1.png" Aspect="AspectFill">
+              <Image Source="{Binding BuzzAvatar}" Aspect="AspectFill">
                 <Image.Clip>
                   <EllipseGeometry Center="28,28" RadiusX="28" RadiusY="28"/>
                 </Image.Clip>
               </Image>
             </Border>
-            <Label Text="kalabaw" FontSize="11"
+            <Label Text="{Binding BuzzWinner}" FontSize="11"
                    TextColor="{StaticResource TextSecondary}"
                    HorizontalTextAlignment="Center"/>
           </VerticalStackLayout>
@@ -185,30 +85,27 @@
                  VerticalOptions="Center"/>
 
           <!-- accept -->
-          <Border Grid.Column="2" Style="{StaticResource CircleBtn}"
-                  BackgroundColor="{StaticResource OkGreen}">
-            <Label Text="&#xF00C;" FontFamily="FAS" FontSize="18" TextColor="White"
-                   HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border Grid.Column="2" StrokeShape="Ellipse" WidthRequest="52" HeightRequest="52" BackgroundColor="{StaticResource OkGreen}">
+            <Label Text="&#xF00C;" FontFamily="FAS" FontSize="18" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
             <Border.GestureRecognizers>
               <TapGestureRecognizer Tapped="OnAccept"/>
             </Border.GestureRecognizers>
           </Border>
 
           <!-- reject -->
-          <Border Grid.Column="3" Style="{StaticResource CircleBtn}"
-                  BackgroundColor="{StaticResource DangerRed}">
-            <Label Text="&#xF00D;" FontFamily="FAS" FontSize="18" TextColor="White"
-                   HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border Grid.Column="3" StrokeShape="Ellipse" WidthRequest="52" HeightRequest="52" BackgroundColor="{StaticResource DangerRed}">
+            <Label Text="&#xF00D;" FontFamily="FAS" FontSize="18" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
             <Border.GestureRecognizers>
               <TapGestureRecognizer Tapped="OnReject"/>
             </Border.GestureRecognizers>
           </Border>
 
           <!-- next -->
-          <Border Grid.Column="4" Style="{StaticResource CircleBtn}">
-            <Label Text="&#xF105;" FontFamily="FAS" FontSize="18"
-                   TextColor="{StaticResource TextPrimary}"
-                   HorizontalOptions="Center" VerticalOptions="Center"/>
+          <Border Grid.Column="4" StrokeShape="Ellipse" WidthRequest="52" HeightRequest="52" BackgroundColor="White">
+            <Label Text="&#xF105;" FontFamily="FAS" FontSize="18" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" VerticalOptions="Center"/>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnSkip"/>
+            </Border.GestureRecognizers>
           </Border>
         </Grid>
       </Border>

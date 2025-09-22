@@ -54,6 +54,8 @@
   <ScrollView>
     <VerticalStackLayout Spacing="16" Padding="16,22,16,28">
 
+      <Label x:Name="QuestionBadge" Text=" " FontSize="12" TextColor="White" HorizontalTextAlignment="Center"/>
+
       <!-- Big Bell Icon -->
       <Border x:Name="Bell" WidthRequest="120" HeightRequest="120"
               BackgroundColor="#F2B51E" StrokeThickness="0"
@@ -66,13 +68,9 @@
         </Border.GestureRecognizers>
       </Border>
 
-      <!-- Answer button -->
-      <Border Style="{StaticResource AnswerPill}">
-        <Label Text="ANSWER" TextColor="Black" FontAttributes="Bold" FontSize="16"
-               HorizontalOptions="Center" />
-        <Border.GestureRecognizers>
-          <TapGestureRecognizer Tapped="OnAnswerTapped"/>
-        </Border.GestureRecognizers>
+      <!-- Shared round timer visible to all -->
+      <Border x:Name="TimerPanel" Style="{StaticResource AnswerPill}" IsVisible="False">
+        <Label x:Name="TimerLabel" Text="10.0s" TextColor="Black" FontAttributes="Bold" FontSize="16" HorizontalOptions="Center" />
       </Border>
 
       <!-- Leaderboard -->

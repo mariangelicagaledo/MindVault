@@ -43,7 +43,7 @@
 
 	<ItemGroup>
 		<!-- App Icon - Using SVG for better quality and adaptive icon support -->
-		<MauiIcon Include="Resources\AppIcon\app_icon.svg"  />
+		<MauiIcon Include="Resources\AppIcon\app_icon.svg" />
 
 		<!-- Splash Screen -->
 		<MauiSplashScreen Include="Resources\Splash\mindvault_logo.jpg" Color="#1A86D9" BaseSize="256,256" />
@@ -63,6 +63,7 @@
 		<PackageReference Include="CommunityToolkit.Maui" Version="12.2.0" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.90" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.5" />
+		<PackageReference Include="Plugin.Maui.Audio" Version="2.2.0" />
 		<PackageReference Include="sqlite-net-pcl" Version="1.9.0" />
 
 	</ItemGroup>
