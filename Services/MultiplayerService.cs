@@ -57,6 +57,13 @@ public partial class MultiplayerService
     private CancellationTokenSource? _clientCts;
     private NetworkStream? _clientStream;
 
+    // Client-side participant cache for UI snapshotting
+    private readonly Dictionary<string, ParticipantInfo> _clientParticipants = new();
+
+    // Game state
+    private volatile bool _gameStarted;
+    public bool GameStarted => _gameStarted;
+
     // Buzz state (host)
     private volatile bool _buzzLocked = false;
     private volatile string? _buzzWinnerId;
@@ -68,11 +75,20 @@ public partial class MultiplayerService
     private int _currentIndex = 0; // 1-based
     private int _totalCards = 0;
 
+    // Track deck for rematch/navigation convenience
+    public bool IsHosting => _listener is not null;
+    public int? CurrentDeckId { get; private set; }
+    public string CurrentDeckTitle { get; private set; } = string.Empty;
+
+    // Expose client connection state so pages can avoid re-joining/duplicating
+    public bool IsClientConnected => _client is not null && _client.Connected && _clientStream is not null;
+
     // Host-side events
     public event Action<ParticipantInfo>? HostParticipantJoined;
     public event Action<string>? HostParticipantLeft; // id
     public event Action<string, bool>? HostParticipantReadyChanged; // id, ready
     public event Action<ParticipantInfo>? HostBuzzWinner;
+    public event Action<GameOverPayload>? HostGameOverOccurred;
 
     // Client-side events
     public event Action<ParticipantInfo>? ClientParticipantJoined;
@@ -89,8 +105,73 @@ public partial class MultiplayerService
     public event Action<string>? ClientCorrectAnswer; // text
     public event Action<GameOverPayload>? ClientGameOver;
     public event Action<string, string>? ClientWrong; // id, name
+    public event Action? ClientHostLeft; // host stopped hosting
 
     public record GameOverPayload(List<(string id, string name, int score)> FinalScores, List<string> Winners, string DeckTitle);
+
+    // Provide a snapshot of current participants on the client
+    public List<ParticipantInfo> GetClientParticipantsSnapshot()
+    {
+        lock (_clientParticipants)
+        {
+            return _clientParticipants.Values.Select(p => new ParticipantInfo
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Avatar = p.Avatar,
+                Ready = p.Ready
+            }).ToList();
+        }
+    }
+
+    // Provide a snapshot of current participants on the host
+    public List<ParticipantInfo> GetHostParticipantsSnapshot()
+    {
+        lock (_sessionsById)
+        {
+            return _sessionsById.Values.Select(v => new ParticipantInfo
+            {
+                Id = v.info.Id,
+                Name = v.info.Name,
+                Avatar = v.info.Avatar,
+                Ready = v.info.Ready
+            }).ToList();
+        }
+    }
+
+    public void HostSetCurrentDeck(int id, string title)
+    {
+        CurrentDeckId = id;
+        CurrentDeckTitle = title ?? string.Empty;
+    }
+
+    public void HostStartRematch()
+    {
+        // Reset scores to zero only for connected participants
+        List<string> ids;
+        lock (_sessionsById)
+            ids = _sessionsById.Keys.ToList();
+
+        lock (_scores)
+        {
+            // Remove any stale scores for disconnected participants
+            var stale = _scores.Keys.Where(k => !ids.Contains(k)).ToList();
+            foreach (var s in stale) _scores.Remove(s);
+
+            foreach (var id in ids)
+            {
+                _scores[id] = 0;
+                _ = BroadcastAsync($"SCORE|{id}|0");
+            }
+        }
+
+        // Reset buzz state for all and immediately start
+        _gameStarted = true;
+        OpenBuzzForAll();
+        _ = BroadcastAsync("BUZZRESET");
+        _ = BroadcastAsync("ENABLEALL");
+        _ = BroadcastAsync("START");
+    }
 
     public string GenerateRoomCode()
     {
@@ -133,6 +214,7 @@ public partial class MultiplayerService
         _buzzLocked = false; _buzzWinnerId = null; _buzzWinnerName = null; _disabledBuzzers.Clear();
         CancelAnswerTimer();
         _currentIndex = 0; _totalCards = 0;
+        _gameStarted = false;
 
         try
         {
@@ -169,6 +251,9 @@ public partial class MultiplayerService
 
     public void StopHosting()
     {
+        // Announce to all clients that host is leaving
+        try { _ = BroadcastAsync("HOSTLEFT"); } catch { }
+
         try { _hostCts?.Cancel(); } catch { }
         _hostCts = null;
         try { _listener?.Stop(); } catch { }
@@ -180,6 +265,7 @@ public partial class MultiplayerService
         _buzzLocked = false; _buzzWinnerId = null; _buzzWinnerName = null; _disabledBuzzers.Clear();
         CancelAnswerTimer();
         _currentIndex = 0; _totalCards = 0;
+        _gameStarted = false;
     }
 
     private async Task HandleClientAsync(TcpClient client, CancellationToken ct)
@@ -225,6 +311,14 @@ public partial class MultiplayerService
             }
             foreach (var n in _disabledBuzzers)
                 await writer.WriteLineAsync($"DISABLEUSER|{n}").ConfigureAwait(false);
+
+            // If a game is already in progress, ensure new client enters the game
+            if (_gameStarted)
+            {
+                await writer.WriteLineAsync("START").ConfigureAwait(false);
+                await writer.WriteLineAsync("BUZZRESET").ConfigureAwait(false);
+                await writer.WriteLineAsync("ENABLEALL").ConfigureAwait(false);
+            }
 
             await BroadcastAsync($"PJOIN|{info.Id}|{info.Name}|{info.Avatar}|0").ConfigureAwait(false);
 
@@ -309,6 +403,7 @@ public partial class MultiplayerService
                     await BroadcastAsync("BUZZRESET").ConfigureAwait(false);
                 }
                 lock (_disabledBuzzers) _disabledBuzzers.Remove(removedId);
+                lock (_scores) _scores.Remove(removedId); // remove stale score for disconnected participant
             }
         }
     }
@@ -356,6 +451,7 @@ public partial class MultiplayerService
     {
         if (!AreAllParticipantsReady())
             return (false, "Not all participants are ready");
+        _gameStarted = true;
         OpenBuzzForAll();
         await BroadcastAsync("START").ConfigureAwait(false);
         await BroadcastAsync("BUZZRESET").ConfigureAwait(false);
@@ -379,12 +475,12 @@ public partial class MultiplayerService
         if (!string.IsNullOrEmpty(loser))
         {
             lock (_disabledBuzzers) _disabledBuzzers.Add(loser);
-            await BroadcastAsync($"DISABLEUSER|{loser}");
+            await BroadcastAsync($"DISABLEUSER|{loser}").ConfigureAwait(false);
             // Announce wrong answer, chance to steal
             var name = _sessionsById.TryGetValue(loser, out var tuple) ? tuple.info.Name : "";
-            await BroadcastAsync($"WRONG|{loser}|{name}");
+            await BroadcastAsync($"WRONG|{loser}|{name}").ConfigureAwait(false);
         }
-        await BroadcastAsync("BUZZRESET");
+        await BroadcastAsync("BUZZRESET").ConfigureAwait(false);
     }
 
     public void HostAwardPoint(string id, int delta)
@@ -419,7 +515,7 @@ public partial class MultiplayerService
             if (_buzzLocked && string.Equals(_buzzWinnerId, winnerId, StringComparison.Ordinal))
             {
                 Debug.WriteLine($"[Multiplayer] TIMEUP for {winnerId}");
-                await BroadcastAsync($"TIMEUP|{winnerId}");
+                await BroadcastAsync($"TIMEUP|{winnerId}").ConfigureAwait(false);
             }
         }, ct);
     }
@@ -444,15 +540,23 @@ public partial class MultiplayerService
     public void HostGameOver(string deckTitle)
     {
         var scores = new List<(string id, string name, int score)>();
+        List<(TcpClient client, ParticipantInfo info)> sessions;
         lock (_sessionsById)
         {
-            foreach (var kv in _scores)
+            sessions = _sessionsById.Values.ToList();
+        }
+
+        // Build scores only for connected participants to avoid ghost IDs from prior sessions
+        lock (_scores)
+        {
+            foreach (var s in sessions)
             {
-                var id = kv.Key; var score = kv.Value;
-                var name = _sessionsById.TryGetValue(id, out var t) ? t.info.Name : id;
-                scores.Add((id, name, score));
+                var id = s.info.Id;
+                _scores.TryGetValue(id, out var score);
+                scores.Add((id, s.info.Name, score));
             }
         }
+
         var sorted = scores.OrderByDescending(s => s.score).ToList();
         var top = sorted.FirstOrDefault().score;
         var winners = sorted.Where(s => s.score == top).Select(s => s.name).ToList();
@@ -460,6 +564,8 @@ public partial class MultiplayerService
         var json = JsonSerializer.Serialize(payload);
         var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         _ = BroadcastAsync($"GAMEOVER|{b64}");
+        HostGameOverOccurred?.Invoke(payload);
+        _gameStarted = false;
         OpenBuzzForAll();
     }
 
@@ -504,10 +610,12 @@ public partial class MultiplayerService
     {
         if (HostEndpoint is null)
             return (false, "Host endpoint not set.");
+        if (IsClientConnected)
+            return (true, null);
         try
         {
             _client = new TcpClient();
-            await _client.ConnectAsync(HostEndpoint.Address, HostEndpoint.Port);
+            await _client.ConnectAsync(HostEndpoint.Address, HostEndpoint.Port).ConfigureAwait(false);
             _clientStream = _client.GetStream();
             _clientCts = new CancellationTokenSource();
             var ct = _clientCts.Token;
@@ -523,33 +631,32 @@ public partial class MultiplayerService
 
     public async Task SendJoinAsync(string name, string avatar)
     {
-        if (_clientStream is null) return;
+        if (_clientStream is null) { await Task.CompletedTask; return; }
         var writer = new StreamWriter(_clientStream, new UTF8Encoding(false)) { AutoFlush = true };
-        await writer.WriteLineAsync($"JOIN|{name}|{avatar}");
+        await writer.WriteLineAsync($"JOIN|{name}|{avatar}").ConfigureAwait(false);
     }
 
     public async Task SendReadyAsync(bool ready)
     {
-        if (_clientStream is null) return;
+        if (_clientStream is null) { await Task.CompletedTask; return; }
         var writer = new StreamWriter(_clientStream, new UTF8Encoding(false)) { AutoFlush = true };
-        // Send two-part READY for broad compatibility
-        await writer.WriteLineAsync($"READY|{(ready ? 1 : 0)}");
+        await writer.WriteLineAsync($"READY|{(ready ? 1 : 0)}").ConfigureAwait(false);
     }
 
     public async Task SendBuzzAsync()
     {
-        if (_clientStream is null) return;
+        if (_clientStream is null) { await Task.CompletedTask; return; }
         var writer = new StreamWriter(_clientStream, new UTF8Encoding(false)) { AutoFlush = true };
-        await writer.WriteLineAsync("BUZZ");
+        await writer.WriteLineAsync("BUZZ").ConfigureAwait(false);
     }
 
     public async Task SendLeaveAsync()
     {
-        if (_clientStream is null) return;
+        if (_clientStream is null) { await Task.CompletedTask; return; }
         try
         {
             var writer = new StreamWriter(_clientStream, new UTF8Encoding(false)) { AutoFlush = true };
-            await writer.WriteLineAsync("LEAVE");
+            await writer.WriteLineAsync("LEAVE").ConfigureAwait(false);
         }
         catch { }
     }
@@ -562,6 +669,8 @@ public partial class MultiplayerService
         _clientStream = null;
         try { _client?.Close(); } catch { }
         _client = null;
+        lock (_clientParticipants) _clientParticipants.Clear();
+        SelfId = string.Empty;
     }
 
     private async Task ClientListenLoopAsync(CancellationToken ct)
@@ -590,11 +699,13 @@ public partial class MultiplayerService
                         Avatar = parts.Length > 3 ? parts[3] : string.Empty,
                         Ready = parts.Length > 4 && parts[4] == "1"
                     };
+                    lock (_clientParticipants) _clientParticipants[p.Id] = p;
                     ClientParticipantJoined?.Invoke(p);
                 }
                 else if (line.StartsWith("PLEFT|"))
                 {
                     var id = line.Substring("PLEFT|".Length);
+                    lock (_clientParticipants) _clientParticipants.Remove(id);
                     ClientParticipantLeft?.Invoke(id);
                 }
                 else if (line.StartsWith("PREADY|"))
@@ -602,10 +713,15 @@ public partial class MultiplayerService
                     var parts = line.Split('|');
                     var id = parts.Length > 1 ? parts[1] : string.Empty;
                     var ready = parts.Length > 2 && parts[2] == "1";
+                    lock (_clientParticipants)
+                    {
+                        if (_clientParticipants.TryGetValue(id, out var pi)) pi.Ready = ready;
+                    }
                     ClientParticipantReadyChanged?.Invoke(id, ready);
                 }
                 else if (line == "START")
                 {
+                    _gameStarted = true;
                     ClientGameStarted?.Invoke();
                 }
                 else if (line.StartsWith("BUZZWIN|"))
@@ -659,6 +775,8 @@ public partial class MultiplayerService
                     var b64 = line.Substring("CORRECT|".Length);
                     string text = string.Empty;
                     try { text = Encoding.UTF8.GetString(Convert.FromBase64String(b64)); } catch { }
+                    try { text = Encoding.UTF8.GetString(Convert.FromBase64String(b64)); }
+                    catch { }
                     ClientCorrectAnswer?.Invoke(text);
                 }
                 else if (line.StartsWith("WRONG|"))
@@ -667,6 +785,12 @@ public partial class MultiplayerService
                     var id = parts.Length > 1 ? parts[1] : string.Empty;
                     var name = parts.Length > 2 ? parts[2] : string.Empty;
                     ClientWrong?.Invoke(id, name);
+                }
+                else if (line == "HOSTLEFT")
+                {
+                    _gameStarted = false;
+                    ClientHostLeft?.Invoke();
+                    break; // stop reading; host is gone
                 }
                 else if (line.StartsWith("GAMEOVER|"))
                 {
@@ -678,6 +802,7 @@ public partial class MultiplayerService
                         if (payload is not null) ClientGameOver?.Invoke(payload);
                     }
                     catch { }
+                    _gameStarted = false;
                 }
             }
         }

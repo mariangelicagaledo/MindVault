@@ -2,6 +2,9 @@ using mindvault.Services;
 using mindvault.Utils;
 using System.Diagnostics;
 using Microsoft.Maui.Storage;
+using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
+using mindvault.Utils.Messages;
 
 namespace mindvault.Pages;
 
@@ -77,14 +80,14 @@ public partial class ReviewerSettingsPage : ContentPage
     {
         Preferences.Set(PrefStudyMode, "Default");
         UpdateModeUI("Default");
-        MessagingCenter.Send(this, "StudyModeChanged", "Default");
+        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage("Default"));
     }
 
     private void OnExamModeTapped(object? sender, TappedEventArgs e)
     {
         Preferences.Set(PrefStudyMode, "Exam");
         UpdateModeUI("Exam");
-        MessagingCenter.Send(this, "StudyModeChanged", "Exam");
+        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage("Exam"));
     }
 
     private void OnRoundSizeTapped(object? sender, TappedEventArgs e)
@@ -94,7 +97,7 @@ public partial class ReviewerSettingsPage : ContentPage
             _roundSize = n;
             Preferences.Set(PrefRoundSize, _roundSize);
             UpdateChipUI();
-            MessagingCenter.Send(this, "RoundSizeChanged", _roundSize);
+            WeakReferenceMessenger.Default.Send(new RoundSizeChangedMessage(_roundSize));
         }
     }
 
@@ -112,7 +115,7 @@ public partial class ReviewerSettingsPage : ContentPage
             if (match != null)
             {
                 Preferences.Remove(PrefReviewStatePrefix + match.Id);
-                MessagingCenter.Send(this, "ProgressReset", match.Id);
+                WeakReferenceMessenger.Default.Send(new ProgressResetMessage(match.Id));
                 await this.DisplayAlert("Progress Reset", "Your review progress has been cleared.", "OK");
             }
             else

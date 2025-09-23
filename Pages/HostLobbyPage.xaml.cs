@@ -58,15 +58,11 @@ public partial class HostLobbyPage : ContentPage, INotifyPropertyChanged
     {
         base.OnAppearing();
         await LoadDeckOptionsAsync();
-        RecalculateCanStart();
-    }
 
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        _multi.HostParticipantJoined -= OnHostParticipantJoined;
-        _multi.HostParticipantLeft -= OnHostParticipantLeft;
-        _multi.HostParticipantReadyChanged -= OnHostParticipantReadyChanged;
+        // Hydrate lobby with current host snapshot (players currently in the lobby)
+        RefreshParticipantsFromHostSnapshot();
+
+        RecalculateCanStart();
     }
 
     private async Task LoadDeckOptionsAsync()
@@ -81,29 +77,47 @@ public partial class HostLobbyPage : ContentPage, INotifyPropertyChanged
             if (string.IsNullOrEmpty(SelectedFlashcard) && FlashcardOptions.Count > 0)
                 SelectedFlashcard = FlashcardOptions[0];
         }
-        catch
+        catch { }
+    }
+
+    private void RefreshParticipantsFromHostSnapshot()
+    {
+        var snapshot = _multi.GetHostParticipantsSnapshot();
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-        }
+            Participants.Clear();
+            foreach (var p in snapshot)
+            {
+                Participants.Add(new Participant
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Image = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar,
+                    Ready = p.Ready
+                });
+            }
+            OnPropertyChanged(nameof(ParticipantsHeader));
+        });
     }
 
     private void OnHostParticipantJoined(MultiplayerService.ParticipantInfo p)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (!Participants.Any(x => x.Name == p.Name))
+            if (!Participants.Any(x => x.Id == p.Id))
             {
-                Participants.Add(new Participant { Name = p.Name, Image = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar, Ready = p.Ready });
+                Participants.Add(new Participant { Id = p.Id, Name = p.Name, Image = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar, Ready = p.Ready });
                 OnPropertyChanged(nameof(ParticipantsHeader));
                 RecalculateCanStart();
             }
         });
     }
 
-    private void OnHostParticipantLeft(string name)
+    private void OnHostParticipantLeft(string id)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var found = Participants.FirstOrDefault(x => x.Name == name);
+            var found = Participants.FirstOrDefault(x => x.Id == id);
             if (found is not null)
             {
                 Participants.Remove(found);
@@ -113,11 +127,11 @@ public partial class HostLobbyPage : ContentPage, INotifyPropertyChanged
         });
     }
 
-    private void OnHostParticipantReadyChanged(string name, bool ready)
+    private void OnHostParticipantReadyChanged(string id, bool ready)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            var found = Participants.FirstOrDefault(x => x.Name == name);
+            var found = Participants.FirstOrDefault(x => x.Id == id);
             if (found is not null)
             {
                 found.Ready = ready;
@@ -134,10 +148,12 @@ public partial class HostLobbyPage : ContentPage, INotifyPropertyChanged
     // Model for the grid
     public class Participant : INotifyPropertyChanged
     {
+        private string _id = "";
         private string _name = "";
         private string _image = "avatar1.png";
         private bool _ready;
 
+        public string Id { get => _id; set { if (_id == value) return; _id = value; OnPropertyChanged(); } }
         public string Name { get => _name; set { if (_name == value) return; _name = value; OnPropertyChanged(); } }
         public string Image { get => _image; set { if (_image == value) return; _image = value; OnPropertyChanged(); } }
         public bool Ready { get => _ready; set { if (_ready == value) return; _ready = value; OnPropertyChanged(); } }

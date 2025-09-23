@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.GameOverPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False">
+
+  <ContentPage.Resources>
+    <Style x:Key="Card" TargetType="Border">
+      <Setter Property="BackgroundColor" Value="White"/>
+      <Setter Property="StrokeThickness" Value="0"/>
+      <Setter Property="StrokeShape" Value="RoundRectangle 18"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.18" Radius="16">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <ScrollView>
+    <VerticalStackLayout Spacing="16" Padding="16,22,16,28">
+      <Label Text="GAME OVER" FontAttributes="Bold" FontSize="22" TextColor="White"
+             HorizontalTextAlignment="Center" />
+      <Label Text="{Binding DeckTitle}" FontSize="14" TextColor="White"
+             HorizontalTextAlignment="Center"/>
+
+      <!-- Winners -->
+      <Border Style="{StaticResource Card}">
+        <VerticalStackLayout Spacing="8">
+          <Label Text="Winner(s)" FontAttributes="Bold" TextColor="Black" FontSize="16" />
+          <CollectionView ItemsSource="{Binding Winners}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate>
+                <Label Text="{Binding}" TextColor="Black" FontSize="14" />
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Leaderboard -->
+      <Border Style="{StaticResource Card}">
+        <VerticalStackLayout Spacing="8">
+          <Label Text="Leaderboard" FontAttributes="Bold" FontSize="16"/>
+          <CollectionView ItemsSource="{Binding Rows}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto" Padding="6,8" ColumnSpacing="10">
+                  <Label Grid.Column="0" Text="{Binding Rank}" FontAttributes="Bold"/>
+
+                  <Grid Grid.Column="1">
+                    <Border WidthRequest="36" HeightRequest="36" StrokeShape="Ellipse" StrokeThickness="0" BackgroundColor="#E8DFFB">
+                      <Image Source="{Binding Image}" Aspect="AspectFill">
+                        <Image.Clip>
+                          <EllipseGeometry Center="18,18" RadiusX="18" RadiusY="18"/>
+                        </Image.Clip>
+                      </Image>
+                    </Border>
+                  </Grid>
+
+                  <Label Grid.Column="2" TextColor="Black" Text="{Binding Name}" />
+                  <Label Grid.Column="3" Text="{Binding PointsText}" />
+                </Grid>
+              </DataTemplate>
+            </CollectionView.ItemTemplate>
+          </CollectionView>
+        </VerticalStackLayout>
+      </Border>
+
+      <!-- Actions -->
+      <HorizontalStackLayout Spacing="12" HorizontalOptions="Center">
+        <Button Text="Lobby" Clicked="OnLobbyClicked"/>
+        <Button Text="Exit" Clicked="OnExitClicked"/>
+      </HorizontalStackLayout>
+
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

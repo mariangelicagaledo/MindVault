@@ -77,24 +77,36 @@ public partial class ExportPage : ContentPage
 #if ANDROID
         try
         {
-            var values = new Android.Content.ContentValues();
-            values.Put(Android.Provider.MediaStore.IMediaColumns.DisplayName, fileName);
-            values.Put(Android.Provider.MediaStore.IMediaColumns.MimeType, "text/plain");
-            values.Put(Android.Provider.MediaStore.IMediaColumns.RelativePath, Android.OS.Environment.DirectoryDownloads);
+            // Use Android 10+ MediaStore APIs only on API 29+ with recognized OS helper
+            if (OperatingSystem.IsAndroidVersionAtLeast(29))
+            {
+                var values = new Android.Content.ContentValues();
+                values.Put(Android.Provider.MediaStore.IMediaColumns.DisplayName, fileName);
+                values.Put(Android.Provider.MediaStore.IMediaColumns.MimeType, "text/plain");
+                values.Put(Android.Provider.MediaStore.IMediaColumns.RelativePath, Android.OS.Environment.DirectoryDownloads);
 
-            var resolver = Android.App.Application.Context.ContentResolver!;
-            var uri = resolver.Insert(Android.Provider.MediaStore.Downloads.ExternalContentUri, values)
-                      ?? throw new IOException("Could not create download entry");
+                var resolver = Android.App.Application.Context.ContentResolver!;
+                var uri = resolver.Insert(Android.Provider.MediaStore.Downloads.ExternalContentUri, values)
+                          ?? throw new IOException("Could not create download entry");
 
-            using var outStream = resolver.OpenOutputStream(uri) ?? throw new IOException("Cannot open output stream");
-            using var writer = new StreamWriter(outStream);
-            await writer.WriteAsync(content);
-            await writer.FlushAsync();
+                using var outStream = resolver.OpenOutputStream(uri) ?? throw new IOException("Cannot open output stream");
+                using var writer = new StreamWriter(outStream);
+                await writer.WriteAsync(content);
+                await writer.FlushAsync();
+                return;
+            }
+            else
+            {
+                var fallbackPath = Path.Combine(FileSystem.AppDataDirectory, fileName);
+                File.WriteAllText(fallbackPath, content);
+                return;
+            }
         }
         catch
         {
             var fallbackPath = Path.Combine(FileSystem.CacheDirectory, fileName);
             File.WriteAllText(fallbackPath, content);
+            return;
         }
 #elif WINDOWS
         var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");

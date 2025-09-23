@@ -15,6 +15,7 @@ public partial class HostJudgePage : ContentPage
     private string _buzzWinnerAvatar = "avatar1.png";
     private bool _showAnswer;
     private bool _hasBuzzWinner;
+    private readonly bool _startRematch;
 
     public string CurrentQuestion { get => _currentQuestion; set { _currentQuestion = value; OnPropertyChanged(); } }
     public string CurrentAnswer { get => _currentAnswer; set { _currentAnswer = value; OnPropertyChanged(); } }
@@ -26,14 +27,20 @@ public partial class HostJudgePage : ContentPage
     private List<Flashcard> _cards = new();
     private int _index = -1;
 
-    public HostJudgePage(int reviewerId, string title)
+    public HostJudgePage(int reviewerId, string title) : this(reviewerId, title, startRematch: false) { }
+
+    public HostJudgePage(int reviewerId, string title, bool startRematch)
     {
         InitializeComponent();
         BindingContext = this;
         _reviewerId = reviewerId;
+        _startRematch = startRematch;
 
         _multi.HostBuzzWinner += OnHostBuzzWinner;
+        _multi.HostGameOverOccurred += OnHostGameOver;
         _deckTitle = title;
+
+        _multi.HostSetCurrentDeck(reviewerId, title);
     }
 
     private string _deckTitle = string.Empty;
@@ -43,12 +50,19 @@ public partial class HostJudgePage : ContentPage
         base.OnAppearing();
         await LoadDeckAsync();
         NextCard();
+        if (_startRematch)
+        {
+            // Delay slightly to ensure UI is ready
+            await Task.Delay(50);
+            try { _multi.HostStartRematch(); } catch { }
+        }
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
         _multi.HostBuzzWinner -= OnHostBuzzWinner;
+        _multi.HostGameOverOccurred -= OnHostGameOver;
     }
 
     private async Task LoadDeckAsync()
@@ -88,6 +102,14 @@ public partial class HostJudgePage : ContentPage
     private void OnHostBuzzWinner(MultiplayerService.ParticipantInfo p)
     {
         MainThread.BeginInvokeOnMainThread(() => { BuzzWinner = p.Name; BuzzAvatar = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar; _lastWinnerId = p.Id; });
+    }
+
+    private void OnHostGameOver(MultiplayerService.GameOverPayload payload)
+    {
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            await Navigation.PushAsync(new GameOverPage(payload));
+        });
     }
 
     private string _lastWinnerId = string.Empty;

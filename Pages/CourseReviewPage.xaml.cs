@@ -8,6 +8,8 @@ using System.Diagnostics;
 using Microsoft.Maui.Storage;
 using System.Collections.Generic;
 using System.Text.Json;
+using CommunityToolkit.Mvvm.Messaging;
+using mindvault.Utils.Messages;
 
 namespace mindvault.Pages;
 
@@ -75,8 +77,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        MessagingCenter.Subscribe<ReviewerSettingsPage, int>(this, "RoundSizeChanged", (_, n) => { _roundSize = n; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
-        MessagingCenter.Subscribe<ReviewerSettingsPage, string>(this, "StudyModeChanged", (_, m) => { _studyMode = m; Preferences.Set(PrefStudyMode, m); ApplyStudyMode(m); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) => { _roundSize = m.Value; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) => { _studyMode = m.Value; Preferences.Set(PrefStudyMode, m.Value); ApplyStudyMode(m.Value); SaveProgress(); });
     }
 
     public CourseReviewPage(string title = "Math Reviewer")
@@ -88,8 +90,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        MessagingCenter.Subscribe<ReviewerSettingsPage, int>(this, "RoundSizeChanged", (_, n) => { _roundSize = n; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
-        MessagingCenter.Subscribe<ReviewerSettingsPage, string>(this, "StudyModeChanged", (_, m) => { _studyMode = m; Preferences.Set(PrefStudyMode, m); ApplyStudyMode(m); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) => { _roundSize = m.Value; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) => { _studyMode = m.Value; Preferences.Set(PrefStudyMode, m.Value); ApplyStudyMode(m.Value); SaveProgress(); });
     }
 
     void ApplyStudyMode(string mode)
@@ -138,6 +140,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     {
         base.OnDisappearing();
         SaveProgress();
+        WeakReferenceMessenger.Default.Unregister<RoundSizeChangedMessage>(this);
+        WeakReferenceMessenger.Default.Unregister<StudyModeChangedMessage>(this);
     }
 
     async Task LoadDeckAsync()

@@ -11,6 +11,7 @@ public partial class PlayerBuzzPage : ContentPage
     private readonly MultiplayerService _multi = Services.ServiceHelper.GetRequiredService<MultiplayerService>();
     private readonly Dictionary<string, int> _scoreMap = new();
     private readonly Dictionary<string, string> _avatars = new();
+    private readonly Dictionary<string, string> _namesById = new();
     private bool _canBuzz = true;
 
     private CancellationTokenSource? _timerCts;
@@ -21,14 +22,26 @@ public partial class PlayerBuzzPage : ContentPage
     private IAudioPlayer? _tickPlayer;
     private IAudioPlayer? _timeupPlayer;
     private IAudioPlayer? _wrongPlayer;
+    private IAudioPlayer? _correctPlayer;
     private Stream? _tickStream;
     private Stream? _timeupStream;
     private Stream? _wrongStream;
+    private Stream? _correctStream;
+
+    private volatile bool _suppressTimeup;
 
     public PlayerBuzzPage()
     {
         InitializeComponent();
         BindingContext = this;
+
+        // Preload known participants so leaderboard shows names immediately
+        var snapshot = _multi.GetClientParticipantsSnapshot();
+        foreach (var p in snapshot)
+        {
+            _namesById[p.Id] = p.Name ?? string.Empty;
+            _avatars[p.Id] = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar;
+        }
 
         _timerPanel = this.FindByName<Border>("TimerPanel");
         _timerLabel = this.FindByName<Label>("TimerLabel");
@@ -44,6 +57,8 @@ public partial class PlayerBuzzPage : ContentPage
         _multi.ClientStopTimer += OnClientStopTimer;
         _multi.ClientCorrectAnswer += OnClientCorrectAnswer;
         _multi.ClientWrong += OnClientWrong;
+        _multi.ClientGameOver += OnClientGameOver;
+        _multi.ClientHostLeft += OnClientHostLeft;
     }
 
     protected override void OnDisappearing()
@@ -59,19 +74,53 @@ public partial class PlayerBuzzPage : ContentPage
         _multi.ClientStopTimer -= OnClientStopTimer;
         _multi.ClientCorrectAnswer -= OnClientCorrectAnswer;
         _multi.ClientWrong -= OnClientWrong;
+        _multi.ClientGameOver -= OnClientGameOver;
+        _multi.ClientHostLeft -= OnClientHostLeft;
         StopTimerUI();
+        StopTimeupSound();
+    }
+
+    private void OnClientHostLeft()
+    {
+        _suppressTimeup = true;
+        StopTimerUI();
+        StopTimeupSound();
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try { await DisplayAlert("Host", "The host has left the game.", "OK"); } catch { }
+            _multi.DisconnectClient();
+            if (Shell.Current is not null)
+                await Shell.Current.GoToAsync("//HomePage");
+            else
+                await Navigation.PopToRootAsync();
+        });
+    }
+
+    private void OnClientGameOver(MultiplayerService.GameOverPayload payload)
+    {
+        _suppressTimeup = true;
+        StopTimerUI();
+        StopTimeupSound();
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            await Navigation.PushAsync(new GameOverPage(payload));
+        });
     }
 
     private void OnClientParticipantJoined(MultiplayerService.ParticipantInfo p)
     {
         if (!string.IsNullOrEmpty(p.Id))
         {
+            _namesById[p.Id] = p.Name ?? string.Empty;
             _avatars[p.Id] = string.IsNullOrEmpty(p.Avatar) ? "avatar1.png" : p.Avatar;
         }
     }
 
     private void OnClientWrong(string id, string name)
     {
+        _suppressTimeup = true;
+        StopTimerUI();
+        StopTimeupSound();
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             await PlayWrongAsync();
@@ -81,8 +130,12 @@ public partial class PlayerBuzzPage : ContentPage
 
     private void OnClientCorrectAnswer(string text)
     {
+        _suppressTimeup = true;
+        StopTimerUI();
+        StopTimeupSound();
         MainThread.BeginInvokeOnMainThread(async () =>
         {
+            await PlayCorrectAsync();
             await DisplayAlert("Correct Answer", text, "OK");
         });
     }
@@ -98,17 +151,21 @@ public partial class PlayerBuzzPage : ContentPage
 
     private void OnBuzzingStarted(string id, string name, long deadlineTicks)
     {
+        _suppressTimeup = false;
         var remaining = TimeSpan.FromTicks(Math.Max(0, deadlineTicks - DateTime.UtcNow.Ticks));
         StartCountdown(remaining <= TimeSpan.Zero ? TimeSpan.FromSeconds(10) : remaining);
     }
 
     private void OnClientStopTimer(string id)
     {
+        _suppressTimeup = true;
         StopTimerUI();
+        StopTimeupSound();
     }
 
     private async void OnClientTimeUp(string id)
     {
+        if (_suppressTimeup) return;
         await PlayTimeupAsync();
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -132,7 +189,9 @@ public partial class PlayerBuzzPage : ContentPage
         if (id == "*")
         {
             _canBuzz = enabled;
+            _suppressTimeup = !enabled;
             StopTimerUI();
+            StopTimeupSound();
             MainThread.BeginInvokeOnMainThread(() => Bell.Opacity = enabled ? 1.0 : 0.5);
             return;
         }
@@ -146,7 +205,9 @@ public partial class PlayerBuzzPage : ContentPage
 
     private void OnBuzzReset()
     {
+        _suppressTimeup = true;
         StopTimerUI();
+        StopTimeupSound();
     }
 
     private void StartCountdown(TimeSpan duration)
@@ -215,7 +276,7 @@ public partial class PlayerBuzzPage : ContentPage
     {
         try
         {
-            StopTickSound();
+            StopTimeupSound();
             _timeupStream = await FileSystem.OpenAppPackageFileAsync("timesup.mp3");
             _timeupPlayer = AudioManager.Current.CreatePlayer(_timeupStream);
             _timeupPlayer.Loop = false;
@@ -223,6 +284,15 @@ public partial class PlayerBuzzPage : ContentPage
             _timeupPlayer.Play();
         }
         catch { }
+    }
+
+    private void StopTimeupSound()
+    {
+        try { _timeupPlayer?.Stop(); } catch { }
+        try { _timeupPlayer?.Dispose(); } catch { }
+        _timeupPlayer = null;
+        try { _timeupStream?.Dispose(); } catch { }
+        _timeupStream = null;
     }
 
     private async Task PlayWrongAsync()
@@ -234,6 +304,19 @@ public partial class PlayerBuzzPage : ContentPage
             _wrongPlayer.Loop = false;
             _wrongPlayer.Volume = 1.0;
             _wrongPlayer.Play();
+        }
+        catch { }
+    }
+
+    private async Task PlayCorrectAsync()
+    {
+        try
+        {
+            _correctStream = await FileSystem.OpenAppPackageFileAsync("correct.mp3");
+            _correctPlayer = AudioManager.Current.CreatePlayer(_correctStream);
+            _correctPlayer.Loop = false;
+            _correctPlayer.Volume = 1.0;
+            _correctPlayer.Play();
         }
         catch { }
     }
@@ -270,10 +353,11 @@ public partial class PlayerBuzzPage : ContentPage
             foreach (var kv in sorted)
             {
                 var avatar = _avatars.TryGetValue(kv.Key, out var av) ? av : "avatar1.png";
+                var name = _namesById.TryGetValue(kv.Key, out var nm) ? nm : kv.Key;
                 Scores.Add(new Score
                 {
                     Rank = rank,
-                    Name = kv.Key,
+                    Name = name,
                     Points = kv.Value,
                     Image = avatar,
                     IsLeader = rank == 1
