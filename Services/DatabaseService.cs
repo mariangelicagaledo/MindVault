@@ -16,6 +16,9 @@ public class DatabaseService
     {
         await _db.CreateTableAsync<Reviewer>();
         await _db.CreateTableAsync<Flashcard>();
+        // Try add new columns when upgrading from older schema
+        try { await _db.ExecuteAsync("ALTER TABLE Flashcard ADD COLUMN QuestionImagePath TEXT"); } catch { }
+        try { await _db.ExecuteAsync("ALTER TABLE Flashcard ADD COLUMN AnswerImagePath TEXT"); } catch { }
     }
 
     public Task<int> AddReviewerAsync(Reviewer reviewer) => _db.InsertAsync(reviewer);
@@ -33,11 +36,9 @@ public class DatabaseService
         return await _db.DeleteAsync(new Reviewer { Id = reviewerId });
     }
 
-    // Delete only the flashcards for a given reviewer (used when saving an edited deck)
     public Task<int> DeleteFlashcardsForReviewerAsync(int reviewerId)
         => _db.ExecuteAsync("DELETE FROM Flashcard WHERE ReviewerId = ?", reviewerId);
 
-    // Update the reviewer's title
     public Task<int> UpdateReviewerTitleAsync(int reviewerId, string newTitle)
         => _db.ExecuteAsync("UPDATE Reviewer SET Title = ? WHERE Id = ?", newTitle, reviewerId);
 }

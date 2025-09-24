@@ -50,6 +50,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
 
     public string FaceTag => _front ? "[Front]" : "[Back]";
     public string FaceText => _current is null ? "" : (_front ? _current.Question : _current.Answer);
+    public string? FaceImage => _current is null ? null : (_front ? _current.QuestionImagePath : _current.AnswerImagePath);
+    public bool FaceImageVisible => !string.IsNullOrWhiteSpace(FaceImage);
 
     double _progressWidth;
     public double ProgressWidth { get => _progressWidth; set { _progressWidth = value; OnPropertyChanged(); } }
@@ -154,7 +156,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         {
             var cards = await _db.GetFlashcardsAsync(ReviewerId);
             foreach (var c in cards)
-                _cards.Add(new SrsCard(c.Id, c.Question, c.Answer) { Ease = StartEase });
+                _cards.Add(new SrsCard(c.Id, c.Question, c.Answer, c.QuestionImagePath, c.AnswerImagePath) { Ease = StartEase });
         }
         _total = _cards.Count;
 
@@ -455,6 +457,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         }
         OnPropertyChanged(nameof(FaceTag));
         OnPropertyChanged(nameof(FaceText));
+        OnPropertyChanged(nameof(FaceImage));
+        OnPropertyChanged(nameof(FaceImageVisible));
         UpdateBindingsAll();
     }
 
@@ -467,6 +471,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         OnPropertyChanged(nameof(Memorized));
         OnPropertyChanged(nameof(FaceTag));
         OnPropertyChanged(nameof(FaceText));
+        OnPropertyChanged(nameof(FaceImage));
+        OnPropertyChanged(nameof(FaceImageVisible));
         UpdateProgressWidth();
     }
 
@@ -592,6 +598,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         public int Id { get; }
         public string Question { get; }
         public string Answer { get; }
+        public string QuestionImagePath { get; }
+        public string AnswerImagePath { get; }
         public Stage Stage { get; set; } = Stage.Avail;
         public DateTime DueAt { get; set; } = DateTime.MinValue;
         public TimeSpan Interval { get; set; } = TimeSpan.Zero;
@@ -609,7 +617,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         public bool CountedSkilled { get; set; } = false;
         public bool CountedMemorized { get; set; } = false;
         public int CramIndex { get; set; } = 0;
-        public SrsCard(int id, string q, string a) { Id = id; Question = q; Answer = a; }
+        public SrsCard(int id, string q, string a, string qImg, string aImg) { Id = id; Question = q; Answer = a; QuestionImagePath = qImg; AnswerImagePath = aImg; }
     }
 
     public class QueueItem

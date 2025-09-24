@@ -166,8 +166,15 @@
                                BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}"
                                PlaceholderColor="#97A1AD" />
                         <Label Grid.Column="1" Text="&#xF03E;" FontFamily="FAS" FontSize="16"
-                               TextColor="#6C4DF7" VerticalOptions="Center" Margin="8,0,0,0"/>
+                               TextColor="#6C4DF7" VerticalOptions="Center" Margin="8,0,0,0">
+                          <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPickImageTapped" CommandParameter="Q"/>
+                          </Label.GestureRecognizers>
+                        </Label>
                       </Grid>
+
+                      <!-- Optional image preview for question -->
+                      <Image Source="{Binding QuestionImagePath}" HeightRequest="120" Aspect="AspectFill" IsVisible="{Binding QuestionImageVisible}"/>
 
                       <Label Text="Answer (Term)" FontSize="12" TextColor="{StaticResource TextSecondary}"/>
 
@@ -176,8 +183,15 @@
                                BackgroundColor="Transparent" TextColor="{StaticResource TextPrimary}"
                                PlaceholderColor="#97A1AD" />
                         <Label Grid.Column="1" Text="&#xF03E;" FontFamily="FAS" FontSize="16"
-                               TextColor="#6C4DF7" VerticalOptions="Center" Margin="8,0,0,0"/>
+                               TextColor="#6C4DF7" VerticalOptions="Center" Margin="8,0,0,0">
+                          <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPickImageTapped" CommandParameter="A"/>
+                          </Label.GestureRecognizers>
+                        </Label>
                       </Grid>
+
+                      <!-- Optional image preview for answer -->
+                      <Image Source="{Binding AnswerImagePath}" HeightRequest="120" Aspect="AspectFill" IsVisible="{Binding AnswerImageVisible}"/>
                     </VerticalStackLayout>
 
                     <!-- ===== SAVED PANEL ===== -->
@@ -197,8 +211,10 @@
 
                       <VerticalStackLayout Grid.Column="1" Spacing="6">
                         <Label Text="{Binding Question}" FontSize="15" TextColor="{StaticResource TextPrimary}"/>
+                        <Image Source="{Binding QuestionImagePath}" HeightRequest="100" Aspect="AspectFill" IsVisible="{Binding QuestionImageVisible}"/>
                         <BoxView HeightRequest="1" BackgroundColor="{StaticResource Divider}"/>
                         <Label Text="{Binding Answer}" FontSize="14" TextColor="{StaticResource TextSecondary}"/>
+                        <Image Source="{Binding AnswerImagePath}" HeightRequest="100" Aspect="AspectFill" IsVisible="{Binding AnswerImageVisible}"/>
                       </VerticalStackLayout>
                     </Grid>
 

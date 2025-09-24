@@ -24,6 +24,10 @@ public class Flashcard
     public string Question { get; set; } = string.Empty;
     public string Answer { get; set; } = string.Empty;
 
+    // Optional images for front/back
+    public string QuestionImagePath { get; set; } = string.Empty;
+    public string AnswerImagePath { get; set; } = string.Empty;
+
     public bool Learned { get; set; }
     public int Order { get; set; }
 }

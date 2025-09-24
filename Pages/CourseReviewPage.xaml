@@ -156,9 +156,13 @@
             <Label Text="{Binding FaceTag}" Grid.Row="0" FontSize="12"
                    TextColor="{StaticResource TextSecondary}" />
 
-            <Label Text="{Binding FaceText}" Grid.Row="1"
-                   FontSize="24" TextColor="{StaticResource TextPrimary}"
-                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            <ScrollView Grid.Row="1">
+              <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Label Text="{Binding FaceText}" FontSize="24" TextColor="{StaticResource TextPrimary}"
+                       HorizontalTextAlignment="Center" />
+                <Image Source="{Binding FaceImage}" Aspect="AspectFit" HeightRequest="240" IsVisible="{Binding FaceImageVisible}"/>
+              </VerticalStackLayout>
+            </ScrollView>
 
             <!-- Bottom of card: skip chip + speaker -->
             <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Padding="0,10,0,0">
