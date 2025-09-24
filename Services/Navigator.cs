@@ -9,52 +9,40 @@ public static class Navigator
     static readonly SemaphoreSlim _gate = new(1, 1);
     static bool _isBusy;
 
-    public static async Task GoToAsync(string route)
+    static async Task WithGate(Func<Task> action)
     {
         if (_isBusy) return;
         await _gate.WaitAsync();
         _isBusy = true;
-        try
-        {
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                if (Shell.Current is not null)
-                    await Shell.Current.GoToAsync(route);
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Navigation error: {ex}");
-        }
-        finally
-        {
-            _isBusy = false;
-            _gate.Release();
-        }
+        try { await action(); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Navigation error: {ex}"); }
+        finally { _isBusy = false; _gate.Release(); }
     }
 
-    public static async Task PushAsync(Page page, INavigation nav)
-    {
-        if (_isBusy) return;
-        await _gate.WaitAsync();
-        _isBusy = true;
-        try
+    public static Task GoToAsync(string route) => WithGate(async () =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            await MainThread.InvokeOnMainThreadAsync(async () =>
-            {
-                await nav.PushAsync(page);
-            });
-        }
-        catch (Exception ex)
+            if (Shell.Current is not null)
+                await Shell.Current.GoToAsync(route);
+        }));
+
+    public static Task PushAsync(Page page, INavigation nav) => WithGate(async () =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            System.Diagnostics.Debug.WriteLine($"Navigation error: {ex}");
-        }
-        finally
+            await nav.PushAsync(page);
+        }));
+
+    public static Task PopAsync(INavigation nav) => WithGate(async () =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
         {
-            _isBusy = false;
-            _gate.Release();
-        }
-    }
+            await nav.PopAsync();
+        }));
+
+    public static Task PopToRootAsync(INavigation nav) => WithGate(async () =>
+        await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            await nav.PopToRootAsync();
+        }));
 }
 
 

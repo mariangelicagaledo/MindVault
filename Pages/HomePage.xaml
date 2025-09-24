@@ -178,6 +178,21 @@
             <Label Style="{StaticResource LinkText}"
                    Text="Browse reviewers you created" />
 
+            <!-- Multiplayer Mode -->
+            <Border Style="{StaticResource PrimaryPill}">
+              <Grid ColumnDefinitions="Auto,*" VerticalOptions="Center">
+                <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="20" TextColor="White"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1" Text="Multiplayer Mode" TextColor="White"
+                       FontAttributes="Bold" FontSize="16" VerticalOptions="Center" />
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnMultiplayerTapped"/>
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Style="{StaticResource LinkText}"
+                   Text="Play with friends over local network: host or join a room" />
+
           </VerticalStackLayout>
         </Border>
 

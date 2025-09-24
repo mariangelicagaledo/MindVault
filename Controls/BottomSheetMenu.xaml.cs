@@ -8,7 +8,7 @@ public partial class BottomSheetMenu : ContentView
     public event EventHandler? CreateTapped;
     public event EventHandler? BrowseTapped;
     public event EventHandler? ImportTapped;
-    public event EventHandler? ExportTapped;
+    public event EventHandler? SettingsTapped; // replaced ExportTapped
     public event EventHandler? MultiplayerTapped; // NEW
     public event EventHandler? HeaderTapped; // Mind Vault header tap
 
@@ -52,12 +52,46 @@ public partial class BottomSheetMenu : ContentView
     async void OnCloseTapped(object? s, TappedEventArgs e) => await HideAsync();
 
     // Header tap -> raise event and close
-    async void OnHeaderTapped(object? s, TappedEventArgs e) { HeaderTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Home"); await HideAsync(); }
+    async void OnHeaderTapped(object? s, TappedEventArgs e)
+    {
+        HeaderTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Home");
+        await HideAsync();
+    }
 
     // Item taps (raise to page, also auto-close)
-    async void OnCreateTapped(object? s, TappedEventArgs e) { CreateTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Title Reviewer"); await HideAsync(); }
-    async void OnBrowseTapped(object? s, TappedEventArgs e) { BrowseTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Browse Reviewers"); await HideAsync(); }
-    async void OnMultiplayerTapped(object? s, TappedEventArgs e) { MultiplayerTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Multiplayer Mode"); await HideAsync(); } // NEW
-    async void OnImportTapped(object? s, TappedEventArgs e) { ImportTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Import Page"); await HideAsync(); }
-    async void OnExportTapped(object? s, TappedEventArgs e) { ExportTapped?.Invoke(this, EventArgs.Empty); ItemSelectedCommand?.Execute("Export Page"); await HideAsync(); }
+    async void OnCreateTapped(object? s, TappedEventArgs e)
+    {
+        CreateTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Title Reviewer");
+        await HideAsync();
+    }
+
+    async void OnBrowseTapped(object? s, TappedEventArgs e)
+    {
+        BrowseTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Browse Reviewers");
+        await HideAsync();
+    }
+
+    async void OnMultiplayerTapped(object? s, TappedEventArgs e)
+    {
+        MultiplayerTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Multiplayer Mode");
+        await HideAsync();
+    }
+
+    async void OnImportTapped(object? s, TappedEventArgs e)
+    {
+        ImportTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Import Page");
+        await HideAsync();
+    }
+
+    async void OnSettingsTapped(object? s, TappedEventArgs e)
+    {
+        SettingsTapped?.Invoke(this, EventArgs.Empty);
+        ItemSelectedCommand?.Execute("Settings Page");
+        await HideAsync();
+    }
 }

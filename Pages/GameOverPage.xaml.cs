@@ -18,23 +18,30 @@ public partial class GameOverPage : ContentPage
         DeckTitle = payload.DeckTitle;
         Winners = payload.Winners;
 
-        // Build leaderboard rows with avatar support when available
+        var snapshot = _multi.GetClientParticipantsSnapshot();
         int rank = 1;
-        foreach (var s in payload.FinalScores.OrderByDescending(s => s.score))
+        foreach (var s in payload.FinalScores.OrderByDescending(s => s.Score))
         {
+            var name = s.Name;
+            var avatar = s.Avatar;
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(avatar))
+            {
+                var p = snapshot.FirstOrDefault(x => x.Id == s.Id);
+                if (string.IsNullOrEmpty(name)) name = p?.Name ?? (string.Equals(s.Id, _multi.SelfId, StringComparison.Ordinal) ? ProfileState.Name : s.Id);
+                if (string.IsNullOrEmpty(avatar)) avatar = p?.Avatar ?? (string.Equals(s.Id, _multi.SelfId, StringComparison.Ordinal) ? ProfileState.Avatar : "avatar1.png");
+            }
+
             Rows.Add(new Row
             {
                 Rank = rank,
-                Name = string.IsNullOrEmpty(s.name) ? s.id : s.name,
-                Points = s.score,
-                Image = ResolveAvatarFor(s.id)
+                Name = string.IsNullOrEmpty(name) ? s.Id : name,
+                Points = s.Score,
+                Image = string.IsNullOrEmpty(avatar) ? "avatar1.png" : avatar
             });
             rank++;
         }
 
         BindingContext = this;
-
-        // React immediately if host leaves while on Game Over screen
         _multi.ClientHostLeft += OnClientHostLeft;
     }
 
@@ -57,18 +64,6 @@ public partial class GameOverPage : ContentPage
         });
     }
 
-    private string ResolveAvatarFor(string id)
-    {
-        // Try to resolve from multiplayer cached participants if available
-        try
-        {
-            var list = _multi.GetClientParticipantsSnapshot();
-            var p = list.FirstOrDefault(x => x.Id == id);
-            return string.IsNullOrEmpty(p?.Avatar) ? "avatar1.png" : p!.Avatar;
-        }
-        catch { return "avatar1.png"; }
-    }
-
     public class Row
     {
         public int Rank { get; set; }
@@ -82,14 +77,12 @@ public partial class GameOverPage : ContentPage
     {
         if (_multi.IsHosting)
         {
-            // Keep host running and go back to host lobby
             var lobby = new HostLobbyPage(_multi.CurrentRoomCode ?? string.Empty);
             Navigation.InsertPageBefore(lobby, this);
             await Navigation.PopAsync();
         }
         else
         {
-            // Client stays connected; go to client lobby
             var lobby = new PlayerLobbyPage();
             Navigation.InsertPageBefore(lobby, this);
             await Navigation.PopAsync();
@@ -100,17 +93,14 @@ public partial class GameOverPage : ContentPage
     {
         if (_multi.IsHosting)
         {
-            // Host: end hosting and close all sessions
             _multi.StopHosting();
         }
         else
         {
-            // Client: cleanly disconnect
             try { await _multi.SendLeaveAsync(); } catch { }
             _multi.DisconnectClient();
         }
 
-        // Back to home/root
         await Navigation.PopToRootAsync();
     }
 }

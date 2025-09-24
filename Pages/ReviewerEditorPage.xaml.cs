@@ -64,6 +64,41 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         }
     }
 
+    // === Title rename ===
+    void OnEditTitleTapped(object? sender, TappedEventArgs e)
+    {
+        RenameEntry.Text = ReviewerTitle;
+        RenameOverlay.IsVisible = true;
+    }
+
+    void OnRenameCancel(object? sender, EventArgs e)
+        => RenameOverlay.IsVisible = false;
+
+    async void OnRenameSave(object? sender, EventArgs e)
+    {
+        var newTitle = RenameEntry.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(newTitle))
+        {
+            await DisplayAlert("Invalid", "Please enter a valid title.", "OK");
+            return;
+        }
+        try
+        {
+            if (ReviewerId > 0)
+                await _db.UpdateReviewerTitleAsync(ReviewerId, newTitle);
+            ReviewerTitle = newTitle; // updates header via binding
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Rename Failed", ex.Message, "OK");
+            return;
+        }
+        finally
+        {
+            RenameOverlay.IsVisible = false;
+        }
+    }
+
     // === UI events from XAML ===
     private async void OnSaveTapped(object? sender, TappedEventArgs e)
     {

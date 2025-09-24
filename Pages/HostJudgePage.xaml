@@ -37,7 +37,7 @@
 
           <!-- center: question/answer text; tap to flip -->
           <VerticalStackLayout Grid.Row="1" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
-            <Label Text="Tap card to flip and reveal answer" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
+            <Label Text="Tap card to reveal the answer" FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
                         <Label Text="{Binding CurrentQuestion}" FontSize="20" TextColor="{StaticResource TextSecondary}" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
             <Label Text="{Binding CurrentAnswer}" FontSize="16" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center"/>
           </VerticalStackLayout>

@@ -92,6 +92,9 @@
                   StrokeShape="Ellipse" BackgroundColor="White" >
             <Label Text="&#xF304;" FontFamily="FAS" FontSize="10" TextColor="#3C4CF3"
                    HorizontalOptions="Center" VerticalOptions="Center"/>
+            <Border.GestureRecognizers>
+              <TapGestureRecognizer Tapped="OnEditTitleTapped"/>
+            </Border.GestureRecognizers>
           </Border>
         </HorizontalStackLayout>
 
@@ -222,6 +225,21 @@
 
         </VerticalStackLayout>
       </ScrollView>
+    </Grid>
+    
+    <!-- Inline rename overlay -->
+    <Grid x:Name="RenameOverlay" IsVisible="False" BackgroundColor="#80000000" Grid.RowSpan="2">
+      <Border BackgroundColor="White" StrokeThickness="0" Padding="18" StrokeShape="RoundRectangle 16"
+              HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="280">
+        <VerticalStackLayout Spacing="10">
+          <Label Text="Rename Deck" FontAttributes="Bold" FontSize="16"/>
+          <Entry x:Name="RenameEntry" Placeholder="New deck name" TextColor="Black"  Text="{Binding ReviewerTitle}"/>
+          <HorizontalStackLayout Spacing="10" HorizontalOptions="End">
+            <Button Text="Cancel" Clicked="OnRenameCancel"/>
+            <Button Text="Save" Clicked="OnRenameSave"/>
+          </HorizontalStackLayout>
+        </VerticalStackLayout>
+      </Border>
     </Grid>
     
     <!-- Reusable bottom sheet lives at top Grid level -->

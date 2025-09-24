@@ -61,24 +61,25 @@
           <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnBrowseTapped"/></Grid.GestureRecognizers>
         </Grid> 
 
-        <!-- NEW: Multiplayer Mode -->
+        <!-- Multiplayer Mode -->
         <Grid ColumnDefinitions="Auto,*">
-          <!-- users icon (Font Awesome: f0c0) -->
           <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
           <Label Grid.Column="1" Text="Multiplayer Mode" FontSize="16" TextColor="#222" />
           <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnMultiplayerTapped"/></Grid.GestureRecognizers>
         </Grid>
 
+        <!-- Import -->
         <Grid ColumnDefinitions="Auto,*">
           <Label Text="&#xF019;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
           <Label Grid.Column="1" Text="Import" FontSize="16" TextColor="#222" />
           <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnImportTapped"/></Grid.GestureRecognizers>
         </Grid>
 
+        <!-- Settings (replaces Export) -->
         <Grid ColumnDefinitions="Auto,*">
-          <Label Text="&#xF093;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
-          <Label Grid.Column="1" Text="Export" FontSize="16" TextColor="#222" />
-          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnExportTapped"/></Grid.GestureRecognizers>
+          <Label Text="&#xF013;" FontFamily="FAS" FontSize="18" TextColor="#6C4DF7" VerticalOptions="Center"/>
+          <Label Grid.Column="1" Text="Settings" FontSize="16" TextColor="#222" />
+          <Grid.GestureRecognizers><TapGestureRecognizer Tapped="OnSettingsTapped"/></Grid.GestureRecognizers>
         </Grid>
 
         <!-- bottom safe space -->

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="mindvault.Pages.ProfileSettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:mindvault.Pages"
+    x:DataType="local:ProfileSettingsPage"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="#0D63B6">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- BODY -->
+    <Grid Grid.Row="1" BackgroundColor="White" Padding="24">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <!-- Title -->
+      <Label Grid.Row="0" Text="Profile Settings" FontSize="20" FontAttributes="Bold" HorizontalTextAlignment="Center"/>
+
+      <!-- Avatar preview -->
+      <Border Grid.Row="1"
+              HorizontalOptions="Center"
+              Margin="0,8,0,16"
+              HeightRequest="140" WidthRequest="140"
+              StrokeThickness="0"
+              BackgroundColor="#FFFFFF">
+        <Border.StrokeShape>
+          <Ellipse/>
+        </Border.StrokeShape>
+        <Border StrokeThickness="0" StrokeShape="Ellipse" BackgroundColor="#F0F0F0">
+          <Image Source="{Binding SelectedAvatar}" Aspect="AspectFill"/>
+        </Border>
+      </Border>
+
+      <!-- Avatar picker -->
+      <CollectionView Grid.Row="2"
+                      ItemsSource="{Binding Avatars}"
+                      SelectionMode="Single"
+                      SelectedItem="{Binding SelectedAvatar, Mode=TwoWay}"
+                      HeightRequest="100">
+        <CollectionView.ItemsLayout>
+          <LinearItemsLayout Orientation="Horizontal" ItemSpacing="14"/>
+        </CollectionView.ItemsLayout>
+        <CollectionView.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border x:Name="AvatarBorder"
+                    Padding="4"
+                    WidthRequest="68" HeightRequest="68"
+                    StrokeThickness="2"
+                    Stroke="#E0E0E0"
+                    BackgroundColor="White"
+                    StrokeShape="Ellipse">
+              <Border StrokeThickness="0" StrokeShape="Ellipse" BackgroundColor="#F0F0F0">
+                <Image Source="{Binding}" Aspect="AspectFill"/>
+              </Border>
+              <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="CommonStates">
+                  <VisualState x:Name="Normal"/>
+                  <VisualState x:Name="Selected">
+                    <VisualState.Setters>
+                      <Setter TargetName="AvatarBorder" Property="VisualElement.BackgroundColor" Value="#1028B6D4"/>
+                      <Setter TargetName="AvatarBorder" Property="Border.Stroke" Value="#28B6D4"/>
+                      <Setter TargetName="AvatarBorder" Property="Border.StrokeThickness" Value="3"/>
+                    </VisualState.Setters>
+                  </VisualState>
+                </VisualStateGroup>
+              </VisualStateManager.VisualStateGroups>
+            </Border>
+          </DataTemplate>
+        </CollectionView.ItemTemplate>
+      </CollectionView>
+
+      <!-- Gender label -->
+      <Label Grid.Row="3" Text="SELECT GENDER :" Margin="0,24,0,10" TextColor="#555" FontAttributes="Bold"/>
+
+      <!-- Gender icons -->
+      <Grid Grid.Row="4" ColumnDefinitions="*,*,*" HorizontalOptions="Fill" Margin="0,0,0,12">
+        <Label x:Name="FemaleIcon" Grid.Column="0" Text="&#xF221;" FontFamily="FAS" FontSize="52" TextColor="#FF2B78" HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnFemaleTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
+        <Label x:Name="MaleIcon" Grid.Column="1" Text="&#xF222;" FontFamily="FAS" FontSize="52" TextColor="#1EA1FF" HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnMaleTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
+        <Label x:Name="OtherIcon" Grid.Column="2" Text="&#xF128;" FontFamily="FAS" FontSize="52" TextColor="#444" HorizontalOptions="Center" VerticalOptions="Center">
+          <Label.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnOtherTapped"/>
+          </Label.GestureRecognizers>
+        </Label>
+      </Grid>
+
+      <!-- Name input -->
+      <VerticalStackLayout Grid.Row="5" Spacing="14">
+        <Label Text="USERNAME :" Margin="0,4,0,8" TextColor="#555" FontAttributes="Bold"/>
+        <Border Stroke="#DDD" StrokeThickness="1" StrokeShape="RoundRectangle 22">
+          <Entry x:Name="UsernameEntry"
+                 Placeholder="Enter a username"
+                 HeightRequest="46"
+                 BackgroundColor="Transparent"
+                 TextColor="#111"
+                 PlaceholderColor="#999"
+                 ClearButtonVisibility="WhileEditing"
+                 Margin="16,8"/>
+        </Border>
+        <Button Text="SAVE"
+                HorizontalOptions="Center"
+                WidthRequest="170"
+                HeightRequest="46"
+                CornerRadius="23"
+                BackgroundColor="#28B6D4"
+                TextColor="White"
+                FontAttributes="Bold"
+                Margin="0,6,0,0"
+                Clicked="OnSaveClicked"/>
+      </VerticalStackLayout>
+    </Grid>
+  </Grid>
+</ContentPage>

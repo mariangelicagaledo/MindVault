@@ -123,99 +123,74 @@
 
             <!-- HOST -->
             <Border Style="{StaticResource ActionButton}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Label Text="&#xF51E;" FontFamily="FAS" FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>  <!-- bell icon -->
-                <Label Grid.Column="1" Text="HOST" TextColor="White"
-                       FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
-              </Grid>
+              <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Label Text="&#xF51E;" FontFamily="FAS" FontSize="16" TextColor="White"
+                         VerticalOptions="Center"/>
+                  <Label Grid.Column="1" Text="HOST" TextColor="White"
+                         FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
+                </Grid>
+                <Label Text="Create a new room on your device and show the 5‑letter room code to friends on the same Wi‑Fi or hotspot. You’ll control the deck, bell, and scoring." FontSize="12" TextColor="White" Opacity="0.9"/>
+              </VerticalStackLayout>
               <Border.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnHostTapped"/>
               </Border.GestureRecognizers>
             </Border>
 
-            <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
-              <Label.FormattedText>
-                <FormattedString>
-                  <Span Text="The Host" TextColor="#1EA1FF" />
-                  <Span Text=" — reading the flashcards, guarding the bell, judging the answers, and keeping the game fair." />
-                </FormattedString>
-              </Label.FormattedText>
-            </Label>
-
-            <!-- PLAYER -->
+            <!-- JOIN ROOM (with code input inside) -->
             <Border Style="{StaticResource ActionButton}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="16" TextColor="White"
-                       VerticalOptions="Center"/>  <!-- users icon -->
-                <Label Grid.Column="1" Text="PLAYER" TextColor="White"
-                       FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
-              </Grid>
-              <Border.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnPlayerTapped"/>
-              </Border.GestureRecognizers>
+              <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <Label Text="&#xF0C0;" FontFamily="FAS" FontSize="16" TextColor="White"
+                         VerticalOptions="Center"/>
+                  <Label Grid.Column="1" Text="JOIN ROOM" TextColor="White"
+                         FontAttributes="Bold" FontSize="18" VerticalOptions="Center"/>
+                </Grid>
+                <Label Text="Enter the 5-letter code from the host." FontSize="12" TextColor="White" Opacity="0.9"/>
+
+                <!-- Code input and inline ✓ button -->
+                <Border Style="{StaticResource RoomCodePill}" BackgroundColor="#1EA1FF" HorizontalOptions="Center" WidthRequest="260">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                    <Entry x:Name="RoomCodeEntry"
+                           Placeholder="ABC12"
+                           Text=""
+                           MaxLength="5"
+                           Keyboard="Chat"
+                           IsSpellCheckEnabled="False"
+                           IsTextPredictionEnabled="False"
+                           BackgroundColor="#1EA1FF"
+                           TextColor="White"
+                           PlaceholderColor="#D9EEFF"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Fill"
+                           VerticalOptions="Center"
+                           Margin="0,-2,0,0"
+                           TextChanged="OnRoomCodeTextChanged"
+                           Completed="OnJoinCompleted" />
+
+                    <Border x:Name="JoinBtn"
+                            Grid.Column="1"
+                            StrokeShape="Ellipse"
+                            WidthRequest="36" HeightRequest="36"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            Opacity="0.5"
+                            InputTransparent="True">
+                      <Label x:Name="JoinIcon"
+                             Text="&#xF00C;" FontFamily="FAS" FontSize="16"
+                             TextColor="#93CFF9"
+                             HorizontalOptions="Center" VerticalOptions="Center" />
+                      <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnJoinTapped"/>
+                      </Border.GestureRecognizers>
+                    </Border>
+                  </Grid>
+                </Border>
+              </VerticalStackLayout>
             </Border>
-
-               <!-- ENTER ROOM CODE (interactive) -->
-        <VerticalStackLayout Spacing="8" Margin="0,4,0,0">
-          <Label Text="Enter Room Code:" FontSize="12"
-                 TextColor="{StaticResource TextSecondary}"
-                 HorizontalTextAlignment="Center" />
-
-          <Border Style="{StaticResource RoomCodePill}" BackgroundColor="#1EA1FF" HorizontalOptions="Center" WidthRequest="260">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
-              <!-- Real input field -->
-              <Entry x:Name="RoomCodeEntry"
-                     Placeholder="ABCDE"
-                     Text=""
-                     MaxLength="5"
-                     Keyboard="Chat"
-                     IsSpellCheckEnabled="False"
-                     IsTextPredictionEnabled="False"
-                     BackgroundColor="#1EA1FF"
-                     TextColor="White"
-                     PlaceholderColor="#D9EEFF"
-                     FontAttributes="Bold"
-                     HorizontalOptions="Fill"
-                     VerticalOptions="Center"
-                     Margin="0,-2,0,0"
-                     TextChanged="OnRoomCodeTextChanged"
-                     Completed="OnJoinCompleted" />
-
-              <!-- White circle check button -->
-              <Border x:Name="JoinBtn"
-                      Grid.Column="1"
-                      StrokeShape="Ellipse"
-                      WidthRequest="36" HeightRequest="36"
-                      BackgroundColor="White"
-                      StrokeThickness="0"
-                      Opacity="0.5"
-                      InputTransparent="True">
-                <Label x:Name="JoinIcon"
-                       Text="&#xF00C;" FontFamily="FAS" FontSize="16"
-                       TextColor="#93CFF9"
-                       HorizontalOptions="Center" VerticalOptions="Center" />
-                <Border.GestureRecognizers>
-                  <TapGestureRecognizer Tapped="OnJoinTapped"/>
-                </Border.GestureRecognizers>
-              </Border>
-            </Grid>
-          </Border>
-        </VerticalStackLayout>
-
-            <Label FontSize="12" TextColor="{StaticResource TextSecondary}">
-              <Label.FormattedText>
-                <FormattedString>
-                  <Span Text="The Player" TextColor="#1EA1FF" />
-                  <Span Text=" — racing to hit the bell, answering flashcards, and battling for the highest score." />
-                </FormattedString>
-              </Label.FormattedText>
-            </Label>
 
           </VerticalStackLayout>
         </Border>
-
-     
 
       </VerticalStackLayout>
     </ScrollView>

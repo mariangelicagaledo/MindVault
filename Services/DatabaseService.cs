@@ -36,4 +36,8 @@ public class DatabaseService
     // Delete only the flashcards for a given reviewer (used when saving an edited deck)
     public Task<int> DeleteFlashcardsForReviewerAsync(int reviewerId)
         => _db.ExecuteAsync("DELETE FROM Flashcard WHERE ReviewerId = ?", reviewerId);
+
+    // Update the reviewer's title
+    public Task<int> UpdateReviewerTitleAsync(int reviewerId, string newTitle)
+        => _db.ExecuteAsync("UPDATE Reviewer SET Title = ? WHERE Id = ?", newTitle, reviewerId);
 }

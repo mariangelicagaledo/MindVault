@@ -3,9 +3,6 @@ using mindvault.Utils;
 
 namespace mindvault.Utils;
 
-/// <summary>
-/// Helper methods for common page functionality
-/// </summary>
 public static class PageHelpers
 {
     /// <summary>
@@ -21,7 +18,8 @@ public static class PageHelpers
 
         if (hamburgerButton != null && mainMenu != null)
         {
-            // Open the sheet when burger is clicked
+            // Remove previous handlers to avoid multiple subscriptions when pages re-appear
+            hamburgerButton.Clicked -= async (_, __) => await mainMenu.ShowAsync();
             hamburgerButton.Clicked += async (_, __) => await mainMenu.ShowAsync();
 
             // Wire menu actions → navigation

@@ -33,6 +33,15 @@ public partial class MultiplayerService
         public bool Ready { get; set; }
     }
 
+    // New DTO to make JSON payload stable across platforms
+    public class FinalScoreDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int Score { get; set; }
+        public string Avatar { get; set; } = string.Empty;
+    }
+
     private static readonly Random _rng = new();
 
     public string? CurrentRoomCode { get; private set; }
@@ -107,7 +116,8 @@ public partial class MultiplayerService
     public event Action<string, string>? ClientWrong; // id, name
     public event Action? ClientHostLeft; // host stopped hosting
 
-    public record GameOverPayload(List<(string id, string name, int score)> FinalScores, List<string> Winners, string DeckTitle);
+    // Payload now uses DTOs
+    public record GameOverPayload(List<FinalScoreDto> FinalScores, List<string> Winners, string DeckTitle);
 
     // Provide a snapshot of current participants on the client
     public List<ParticipantInfo> GetClientParticipantsSnapshot()
@@ -539,27 +549,26 @@ public partial class MultiplayerService
 
     public void HostGameOver(string deckTitle)
     {
-        var scores = new List<(string id, string name, int score)>();
+        var scores = new List<FinalScoreDto>();
         List<(TcpClient client, ParticipantInfo info)> sessions;
         lock (_sessionsById)
         {
             sessions = _sessionsById.Values.ToList();
         }
 
-        // Build scores only for connected participants to avoid ghost IDs from prior sessions
         lock (_scores)
         {
             foreach (var s in sessions)
             {
                 var id = s.info.Id;
                 _scores.TryGetValue(id, out var score);
-                scores.Add((id, s.info.Name, score));
+                scores.Add(new FinalScoreDto { Id = id, Name = s.info.Name ?? string.Empty, Score = score, Avatar = s.info.Avatar ?? string.Empty });
             }
         }
 
-        var sorted = scores.OrderByDescending(s => s.score).ToList();
-        var top = sorted.FirstOrDefault().score;
-        var winners = sorted.Where(s => s.score == top).Select(s => s.name).ToList();
+        var sorted = scores.OrderByDescending(s => s.Score).ToList();
+        var top = sorted.FirstOrDefault()?.Score ?? 0;
+        var winners = sorted.Where(s => s.Score == top).Select(s => string.IsNullOrEmpty(s.Name) ? s.Id : s.Name).ToList();
         var payload = new GameOverPayload(sorted, winners, deckTitle);
         var json = JsonSerializer.Serialize(payload);
         var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));

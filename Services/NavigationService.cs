@@ -15,7 +15,7 @@ public static class NavigationService
 
     // TitleReviewerPage:
     public static Task CreateNewReviewer(int id, string title)
-        => Go($"{nameof(Pages.ReviewerEditorPage)}?id={id}&title={System.Uri.EscapeDataString(title)}");
+        => Go($"///{nameof(Pages.ReviewerEditorPage)}?id={id}&title={System.Uri.EscapeDataString(title)}");
     public static Task CloseTitleToReviewers() => ToRoot();
 
     // ReviewerEditorPage:

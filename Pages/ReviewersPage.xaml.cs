@@ -255,12 +255,11 @@ public partial class ReviewersPage : ContentPage
 
     private async void OnEditTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is Element el && el.BindingContext is ReviewerCard reviewer)
-        {
-            Debug.WriteLine($"[ReviewersPage] OpenEditor() -> ReviewerEditorPage (Id={reviewer.Id}, Title={reviewer.Title})");
-            var route = $"{nameof(ReviewerEditorPage)}?id={reviewer.Id}&title={Uri.EscapeDataString(reviewer.Title)}";
-            await Shell.Current.GoToAsync(route);
-        }
+        if (sender is not Element el || el.BindingContext is not ReviewerCard reviewer) return;
+        Debug.WriteLine($"[ReviewersPage] OpenEditor() -> ReviewerEditorPage (Id={reviewer.Id}, Title={reviewer.Title})");
+        var route = $"///{nameof(ReviewerEditorPage)}?id={reviewer.Id}&title={Uri.EscapeDataString(reviewer.Title)}";
+        await PageHelpers.SafeNavigateAsync(this, async () => await Shell.Current.GoToAsync(route),
+            "Could not open editor");
     }
 
     private void OnSearchTapped(object? sender, TappedEventArgs e)

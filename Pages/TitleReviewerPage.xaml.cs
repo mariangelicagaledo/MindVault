@@ -8,6 +8,7 @@ namespace mindvault.Pages;
 public partial class TitleReviewerPage : ContentPage
 {
     readonly DatabaseService _db;
+    bool _isCreating;
 
     public TitleReviewerPage()
     {
@@ -18,21 +19,31 @@ public partial class TitleReviewerPage : ContentPage
 
     private async void OnCreateNewTapped(object sender, EventArgs e)
     {
-        var title = TitleEntry?.Text?.Trim();
-        if (string.IsNullOrEmpty(title))
+        if (_isCreating) return;
+        _isCreating = true;
+        try
         {
-            await PageHelpers.SafeDisplayAlertAsync(this, "Oops", "Please enter a title for your reviewer.", "OK");
-            return;
+            var title = TitleEntry?.Text?.Trim();
+            if (string.IsNullOrEmpty(title))
+            {
+                await PageHelpers.SafeDisplayAlertAsync(this, "Oops", "Please enter a title for your reviewer.", "OK");
+                return;
+            }
+
+            // Create reviewer row
+            var reviewer = new Reviewer { Title = title };
+            await _db.AddReviewerAsync(reviewer);
+
+            Debug.WriteLine($"[TitleReviewerPage] Created reviewer #{reviewer.Id} '{reviewer.Title}' -> ReviewerEditorPage");
+
+            // Navigate to editor, passing id and title (single-shot)
+            await PageHelpers.SafeNavigateAsync(this,
+                async () => await NavigationService.CreateNewReviewer(reviewer.Id, reviewer.Title),
+                "Could not create new reviewer");
         }
-
-        // Create reviewer row
-        var reviewer = new Reviewer { Title = title };
-        await _db.AddReviewerAsync(reviewer);
-
-        Debug.WriteLine($"[TitleReviewerPage] Created reviewer #{reviewer.Id} '{reviewer.Title}' -> ReviewerEditorPage");
-        // Navigate to editor, passing id and title
-        await PageHelpers.SafeNavigateAsync(this,
-            async () => await NavigationService.CreateNewReviewer(reviewer.Id, reviewer.Title),
-            "Could not create new reviewer");
+        finally
+        {
+            _isCreating = false;
+        }
     }
 }
