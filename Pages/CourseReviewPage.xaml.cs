@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using mindvault.Services;
-using mindvault.Pages;
 using mindvault.Utils;
 using System.Diagnostics;
 using Microsoft.Maui.Storage;
@@ -12,6 +11,7 @@ using System.Text.Json;
 using CommunityToolkit.Mvvm.Messaging;
 using mindvault.Utils.Messages;
 using System.Threading;
+using Microsoft.Maui.ApplicationModel;
 
 namespace mindvault.Pages;
 
@@ -64,7 +64,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     public int Memorized => _memorizedCount;
 
     public string FaceTag => _front ? "[Front]" : "[Back]";
-    public string FaceText => _current is null ? "" : (_front ? _current.Question : _current.Answer);
+    public string FaceText => _current is null ? string.Empty : (_front ? _current.Question : _current.Answer);
     public string? FaceImage => _current is null ? null : (_front ? _current.QuestionImagePath : _current.AnswerImagePath);
     public bool FaceImageVisible => !string.IsNullOrWhiteSpace(FaceImage);
 
@@ -90,21 +90,11 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         ReviewerId = reviewerId;
         Title = title;
         // per-deck settings defaults
-        _roundSize = Preferences.Get($"RoundSize_{ReviewerId}", Preferences.Get("RoundSize", 10));
-        _studyMode = Preferences.Get($"StudyMode_{ReviewerId}", Preferences.Get("StudyMode", "Default"));
+        _roundSize = Preferences.Get($"{PrefRoundSize}_{ReviewerId}", Preferences.Get(PrefRoundSize, 10));
+        _studyMode = Preferences.Get($"{PrefStudyMode}_{ReviewerId}", Preferences.Get(PrefStudyMode, "Default"));
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) =>
-        {
-            if (m.Value.ReviewerId != ReviewerId) return;
-            _roundSize = m.Value.RoundSize; _roundCount = 0; UpdateProgressWidth(); SaveProgress();
-        });
-        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) =>
-        {
-            if (m.Value.ReviewerId != ReviewerId) return;
-            _studyMode = m.Value.Mode; Preferences.Set($"StudyMode_{ReviewerId}", m.Value.Mode); ApplyStudyMode(m.Value.Mode); SaveProgress();
-        });
     }
 
     public CourseReviewPage(string title = "Math Reviewer")
@@ -112,21 +102,54 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         InitializeComponent();
         Title = title;
         // reviewer id will be resolved OnAppearing; use global defaults until then
-        _roundSize = Preferences.Get("RoundSize", 10);
-        _studyMode = Preferences.Get("StudyMode", "Default");
+        _roundSize = Preferences.Get(PrefRoundSize, 10);
+        _studyMode = Preferences.Get(PrefStudyMode, "Default");
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
+    }
+
+    void WireMessages()
+    {
         WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) =>
         {
             if (m.Value.ReviewerId != ReviewerId) return;
-            _roundSize = m.Value.RoundSize; _roundCount = 0; UpdateProgressWidth(); SaveProgress();
+            if (_roundSize == m.Value.RoundSize) return; // no change
+            _roundSize = m.Value.RoundSize;
+            Preferences.Set($"{PrefRoundSize}_{ReviewerId}", _roundSize);
+            _roundCount = 0; UpdateProgressWidth(); SaveProgress();
+            _ = MainThread.InvokeOnMainThreadAsync(ResetSessionAsync);
         });
         WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) =>
         {
             if (m.Value.ReviewerId != ReviewerId) return;
-            _studyMode = m.Value.Mode; Preferences.Set($"StudyMode_{ReviewerId}", m.Value.Mode); ApplyStudyMode(m.Value.Mode); SaveProgress();
+            if (_studyMode == m.Value.Mode) return; // no change
+            _studyMode = m.Value.Mode;
+            Preferences.Set($"{PrefStudyMode}_{ReviewerId}", _studyMode);
+            ApplyStudyMode(_studyMode); SaveProgress();
+            _ = MainThread.InvokeOnMainThreadAsync(ResetSessionAsync);
         });
+        WeakReferenceMessenger.Default.Register<ProgressResetMessage>(this, (r, m) =>
+        {
+            if (m.Value != ReviewerId) return;
+            _ = MainThread.InvokeOnMainThreadAsync(async () => await ResetSessionAsync());
+        });
+    }
+
+    async Task ResetSessionAsync()
+    {
+        try
+        {
+            _roundJustFinished = false;
+            SessionComplete = false;
+            try { await CompletionOverlay.FadeTo(0, 120); } catch { }
+            _loaded = true; // allow reload within the same lifetime
+            await LoadDeckAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[CourseReviewPage] ResetSessionAsync error: {ex}");
+        }
     }
 
     void ApplyStudyMode(string mode)
@@ -138,7 +161,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
             LearnStep1 = TimeSpan.FromMinutes(1);
             LearnStep2 = TimeSpan.FromMinutes(10);
             RelearnStep = TimeSpan.FromMinutes(10);
-            GraduateDays = 1; // not used in cram review; graduation uses cram first step elsewhere
+            GraduateDays = 1;
             StartEase = 2.5; MinEase = 1.3; AgainEasePenalty = 0.2; NewIntervalPctAfterLapse = 0.0;
         }
         else
@@ -158,6 +181,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Resolve reviewer id if needed
         if (ReviewerId <= 0)
         {
             var reviewers = await _db.GetReviewersAsync();
@@ -165,10 +190,33 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
             if (match is not null)
                 ReviewerId = match.Id;
         }
-        // Now that id is known, refresh deck-specific preferences
-        _roundSize = Preferences.Get($"RoundSize_{ReviewerId}", Preferences.Get("RoundSize", _roundSize));
-        var mode = Preferences.Get($"StudyMode_{ReviewerId}", Preferences.Get("StudyMode", _studyMode));
-        if (mode != _studyMode) { _studyMode = mode; ApplyStudyMode(_studyMode); }
+
+        // rewire messages every appear to ensure subscriptions exist after returning from settings
+        WeakReferenceMessenger.Default.UnregisterAll(this);
+        WireMessages();
+
+        // Detect deck-scoped settings changes while we were away
+        var prevRound = _roundSize;
+        var prevMode = _studyMode;
+
+        var newRound = Preferences.Get($"{PrefRoundSize}_{ReviewerId}", Preferences.Get(PrefRoundSize, prevRound));
+        var newMode = Preferences.Get($"{PrefStudyMode}_{ReviewerId}", Preferences.Get(PrefStudyMode, prevMode));
+
+        bool changed = (newRound != prevRound) || !string.Equals(newMode, prevMode, StringComparison.Ordinal);
+
+        // Apply values
+        _roundSize = newRound;
+        if (!string.Equals(newMode, _studyMode, StringComparison.Ordinal))
+        {
+            _studyMode = newMode;
+            ApplyStudyMode(_studyMode);
+        }
+
+        if (changed)
+        {
+            await ResetSessionAsync();
+            return;
+        }
 
         if (_loaded) return;
         _sessionStart = DateTime.UtcNow;
@@ -180,8 +228,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     {
         base.OnDisappearing();
         SaveProgress();
-        WeakReferenceMessenger.Default.Unregister<RoundSizeChangedMessage>(this);
-        WeakReferenceMessenger.Default.Unregister<StudyModeChangedMessage>(this);
+        // Do not unregister from messages here so we can react to reset while settings page is on top
     }
 
     async Task LoadDeckAsync()
@@ -385,6 +432,56 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         PickNextCard();
     }
 
+    private void OnBucketTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is not string bucket) return;
+        var now = DateTime.UtcNow;
+        SrsCard? pick = null;
+        switch (bucket)
+        {
+            case "Avail":
+                pick = _cards.FirstOrDefault(c => c.Stage == Stage.Avail);
+                if (pick is not null)
+                {
+                    pick.Stage = Stage.Seen;
+                    pick.DueAt = now;
+                    pick.Interval = TimeSpan.Zero;
+                    pick.LearningIndex = -1;
+                }
+                break;
+            case "Seen":
+                pick = _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+            case "Learned":
+                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+            case "Skilled":
+            case "Memorized":
+                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+        }
+        if (pick is not null)
+        {
+            _current = pick;
+            AfterPick();
+        }
+    }
+
     // Re-introduced: limits rapid answer interactions and adds short cooldown
     void UpdateAnswerWindow(DateTime now)
     {
@@ -508,7 +605,6 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
             _roundCount = 0;
             _lastAnswered = null;
             SaveProgress();
-            // Replace the old alert with our overlay; do not show DisplayAlert here
             SessionComplete = true;
             _ = ShowCompletionAsync();
         }
@@ -713,56 +809,6 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     protected new void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    private void OnBucketTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not string bucket) return;
-        var now = DateTime.UtcNow;
-        SrsCard? pick = null;
-        switch (bucket)
-        {
-            case "Avail":
-                pick = _cards.FirstOrDefault(c => c.Stage == Stage.Avail);
-                if (pick is not null)
-                {
-                    pick.Stage = Stage.Seen;
-                    pick.DueAt = now;
-                    pick.Interval = TimeSpan.Zero;
-                    pick.LearningIndex = -1;
-                }
-                break;
-            case "Seen":
-                pick = _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-            case "Learned":
-                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-            case "Skilled":
-            case "Memorized":
-                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-        }
-        if (pick is not null)
-        {
-            _current = pick;
-            AfterPick();
-        }
-    }
-
     private async void OnCloseTapped(object? s, EventArgs e)
     {
         await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseCourseToReviewers(),
@@ -788,7 +834,6 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         await Navigator.PushAsync(page, Navigation);
     }
 
-    // Overlay button handlers
     private async void OnReviewMistakes(object? s, EventArgs e)
     {
         // Requeue items with streak == 0 and restart a fresh session
