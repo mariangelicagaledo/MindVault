@@ -6,10 +6,12 @@ using mindvault.Pages;
 using mindvault.Utils;
 using System.Diagnostics;
 using Microsoft.Maui.Storage;
+using Microsoft.Maui.Media;
 using System.Collections.Generic;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.Messaging;
 using mindvault.Utils.Messages;
+using System.Threading;
 
 namespace mindvault.Pages;
 
@@ -41,6 +43,19 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     readonly HashSet<SrsCard> _learnedEver = new();
     int _skilledCount = 0;
     int _memorizedCount = 0;
+
+    // Session stats
+    DateTime _sessionStart;
+    public int CorrectCount { get; private set; }
+    public int WrongCount { get; private set; }
+    public string ElapsedText => $"Time: {(int)(DateTime.UtcNow - _sessionStart).TotalMinutes} min";
+
+    bool _sessionComplete;
+    public bool SessionComplete
+    {
+        get => _sessionComplete;
+        set { if (_sessionComplete == value) return; _sessionComplete = value; OnPropertyChanged(); }
+    }
 
     public int Avail => _total;
     public int Seen => _cards.Count(c => c.SeenOnce);
@@ -74,26 +89,44 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         InitializeComponent();
         ReviewerId = reviewerId;
         Title = title;
-        _roundSize = Preferences.Get(PrefRoundSize, 10);
-        _studyMode = Preferences.Get(PrefStudyMode, "Default");
+        // per-deck settings defaults
+        _roundSize = Preferences.Get($"RoundSize_{ReviewerId}", Preferences.Get("RoundSize", 10));
+        _studyMode = Preferences.Get($"StudyMode_{ReviewerId}", Preferences.Get("StudyMode", "Default"));
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) => { _roundSize = m.Value; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
-        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) => { _studyMode = m.Value; Preferences.Set(PrefStudyMode, m.Value); ApplyStudyMode(m.Value); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value.ReviewerId != ReviewerId) return;
+            _roundSize = m.Value.RoundSize; _roundCount = 0; UpdateProgressWidth(); SaveProgress();
+        });
+        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value.ReviewerId != ReviewerId) return;
+            _studyMode = m.Value.Mode; Preferences.Set($"StudyMode_{ReviewerId}", m.Value.Mode); ApplyStudyMode(m.Value.Mode); SaveProgress();
+        });
     }
 
     public CourseReviewPage(string title = "Math Reviewer")
     {
         InitializeComponent();
         Title = title;
-        _roundSize = Preferences.Get(PrefRoundSize, 10);
-        _studyMode = Preferences.Get(PrefStudyMode, "Default");
+        // reviewer id will be resolved OnAppearing; use global defaults until then
+        _roundSize = Preferences.Get("RoundSize", 10);
+        _studyMode = Preferences.Get("StudyMode", "Default");
         ApplyStudyMode(_studyMode);
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) => { _roundSize = m.Value; _roundCount = 0; UpdateProgressWidth(); SaveProgress(); });
-        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) => { _studyMode = m.Value; Preferences.Set(PrefStudyMode, m.Value); ApplyStudyMode(m.Value); SaveProgress(); });
+        WeakReferenceMessenger.Default.Register<RoundSizeChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value.ReviewerId != ReviewerId) return;
+            _roundSize = m.Value.RoundSize; _roundCount = 0; UpdateProgressWidth(); SaveProgress();
+        });
+        WeakReferenceMessenger.Default.Register<StudyModeChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value.ReviewerId != ReviewerId) return;
+            _studyMode = m.Value.Mode; Preferences.Set($"StudyMode_{ReviewerId}", m.Value.Mode); ApplyStudyMode(m.Value.Mode); SaveProgress();
+        });
     }
 
     void ApplyStudyMode(string mode)
@@ -132,8 +165,13 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
             if (match is not null)
                 ReviewerId = match.Id;
         }
+        // Now that id is known, refresh deck-specific preferences
+        _roundSize = Preferences.Get($"RoundSize_{ReviewerId}", Preferences.Get("RoundSize", _roundSize));
+        var mode = Preferences.Get($"StudyMode_{ReviewerId}", Preferences.Get("StudyMode", _studyMode));
+        if (mode != _studyMode) { _studyMode = mode; ApplyStudyMode(_studyMode); }
 
         if (_loaded) return;
+        _sessionStart = DateTime.UtcNow;
         await LoadDeckAsync();
         _loaded = true;
     }
@@ -152,6 +190,8 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         _learnedEver.Clear();
         _skilledCount = 0;
         _memorizedCount = 0;
+        CorrectCount = 0; WrongCount = 0;
+        _roundJustFinished = false;
         if (ReviewerId > 0)
         {
             var cards = await _db.GetFlashcardsAsync(ReviewerId);
@@ -166,15 +206,29 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         _lastAnswered = null;
         _roundCount = 0;
         _front = true;
+        SessionComplete = false;
         UpdateBindingsAll();
         PickNextCard();
     }
 
-    private void OnFlip(object? s, TappedEventArgs e)
+    async Task FlipAnimationAsync()
     {
+        try
+        {
+            await CardBorder.ScaleXTo(0.0, 110, Easing.CubicIn);
+            await CardBorder.ScaleXTo(1.0, 110, Easing.CubicOut);
+        }
+        catch { }
+    }
+
+    private async void OnFlip(object? s, TappedEventArgs e)
+    {
+        await FlipAnimationAsync();
         _front = !_front;
         OnPropertyChanged(nameof(FaceTag));
         OnPropertyChanged(nameof(FaceText));
+        OnPropertyChanged(nameof(FaceImage));
+        OnPropertyChanged(nameof(FaceImageVisible));
     }
 
     private void OnSkip(object? s, TappedEventArgs e)
@@ -186,6 +240,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     private void OnFail(object? s, TappedEventArgs e)
     {
         if (_current is null) { PickNextCard(); return; }
+        WrongCount++; OnPropertyChanged(nameof(WrongCount));
         var now = DateTime.UtcNow;
 
         if (_current.CountedMemorized)
@@ -228,6 +283,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     private void OnPass(object? s, TappedEventArgs e)
     {
         if (_current is null) { PickNextCard(); return; }
+        CorrectCount++; OnPropertyChanged(nameof(CorrectCount));
         var now = DateTime.UtcNow;
 
         if (!_current.InReview)
@@ -329,56 +385,7 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         PickNextCard();
     }
 
-    private void OnBucketTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not string bucket) return;
-        var now = DateTime.UtcNow;
-        SrsCard? pick = null;
-        switch (bucket)
-        {
-            case "Avail":
-                pick = _cards.FirstOrDefault(c => c.Stage == Stage.Avail);
-                if (pick is not null)
-                {
-                    pick.Stage = Stage.Seen;
-                    pick.DueAt = now;
-                    pick.Interval = TimeSpan.Zero;
-                    pick.LearningIndex = -1;
-                }
-                break;
-            case "Seen":
-                pick = _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-            case "Learned":
-                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-            case "Skilled":
-            case "Memorized":
-                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
-                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
-                             .OrderBy(c => c.DueAt)
-                             .FirstOrDefault();
-                break;
-        }
-        if (pick is not null)
-        {
-            _current = pick;
-            AfterPick();
-        }
-    }
-
+    // Re-introduced: limits rapid answer interactions and adds short cooldown
     void UpdateAnswerWindow(DateTime now)
     {
         if (_current is null) return;
@@ -396,20 +403,51 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private async void OnCloseTapped(object? s, EventArgs e)
+    // New: round-completion guard
+    private bool _roundJustFinished;
+
+    // Speak current card title/text
+    CancellationTokenSource? _ttsCts;
+    bool _isSpeaking;
+
+    private async void OnSpeakTapped(object? s, TappedEventArgs e)
     {
-        Debug.WriteLine($"[CourseReviewPage] CloseCourseToReviewers() -> ReviewersPage");
-        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseCourseToReviewers(),
-            "Could not return to reviewers");
+        try
+        {
+            // Toggle cancel if already speaking
+            if (_isSpeaking)
+            {
+                _ttsCts?.Cancel();
+                return;
+            }
+
+            var text = FaceText;
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            _ttsCts = new CancellationTokenSource();
+            _isSpeaking = true;
+            SpeakButton.Opacity = 0.5; // visual feedback but keep it tappable to allow cancel
+
+            await TextToSpeech.Default.SpeakAsync(text, new SpeechOptions { Volume = 1.0f, Pitch = 1.0f }, _ttsCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // expected on cancel
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[TTS] {ex.Message}");
+        }
+        finally
+        {
+            _isSpeaking = false;
+            _ttsCts?.Dispose();
+            _ttsCts = null;
+            SpeakButton.Opacity = 1.0;
+        }
     }
 
-    private async void OnSettingsTapped(object? s, EventArgs e)
-    {
-        Debug.WriteLine($"[CourseReviewPage] OpenReviewerSettings() -> ReviewerSettingsPage");
-        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.OpenReviewerSettings(),
-            "Could not open settings");
-    }
-
+    // Adapt PickNextCard to only show completion UI when round-size done
     void PickNextCard()
     {
         var now = DateTime.UtcNow;
@@ -444,7 +482,63 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         var nextFuture = futureList.FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
                       ?? futureList.FirstOrDefault();
         _current = nextFuture;
-        AfterPick();
+
+        // When no next card: only show completion overlay if a full round was completed
+        if (_current is null)
+        {
+            if (_roundJustFinished || _roundSize == 0)
+            {
+                SessionComplete = true;
+                _ = ShowCompletionAsync();
+            }
+        }
+        else
+        {
+            AfterPick();
+        }
+    }
+
+    void IncrementRound()
+    {
+        _roundCount++;
+        UpdateProgressWidth();
+        if (_roundSize > 0 && _roundCount >= _roundSize)
+        {
+            _roundJustFinished = true;
+            _roundCount = 0;
+            _lastAnswered = null;
+            SaveProgress();
+            // Replace the old alert with our overlay; do not show DisplayAlert here
+            SessionComplete = true;
+            _ = ShowCompletionAsync();
+        }
+    }
+
+    // === Helpers restored ===
+    async Task ShowCompletionAsync()
+    {
+        try
+        {
+            await CompletionOverlay.FadeTo(1, 180, Easing.CubicOut);
+            // Simple confetti: spawn fading dots
+            _ = Task.Run(async () =>
+            {
+                for (int i = 0; i < 12; i++)
+                {
+                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    {
+                        var dot = new BoxView { Color = Color.FromRgb(Random.Shared.Next(256), Random.Shared.Next(256), Random.Shared.Next(256)), CornerRadius = 6, WidthRequest = 12, HeightRequest = 12, Opacity = 0 };
+                        ConfettiHost.Children.Add(dot);
+                        await dot.FadeTo(1, 100);
+                        await dot.TranslateTo(0, 240, (uint)(700 + Random.Shared.Next(300)), Easing.CubicIn);
+                        await dot.FadeTo(0, 150);
+                        ConfettiHost.Children.Remove(dot);
+                    });
+                    await Task.Delay(90);
+                }
+            });
+        }
+        catch { }
     }
 
     void AfterPick()
@@ -473,6 +567,9 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
         OnPropertyChanged(nameof(FaceText));
         OnPropertyChanged(nameof(FaceImage));
         OnPropertyChanged(nameof(FaceImageVisible));
+        OnPropertyChanged(nameof(ElapsedText));
+        OnPropertyChanged(nameof(CorrectCount));
+        OnPropertyChanged(nameof(WrongCount));
         UpdateProgressWidth();
     }
 
@@ -480,20 +577,6 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     {
         double ratio = _roundSize == 0 ? 0 : Math.Clamp((double)_roundCount / _roundSize, 0, 1);
         ProgressWidth = (Width - 32) * ratio;
-    }
-
-    void IncrementRound()
-    {
-        _roundCount++;
-        UpdateProgressWidth();
-        if (_roundCount >= _roundSize && _roundSize > 0)
-        {
-            _roundCount = 0;
-            _lastAnswered = null;
-            SaveProgress();
-            MainThread.BeginInvokeOnMainThread(async () =>
-                await this.DisplayAlert("Round complete", $"You completed {_roundSize} questions.", "OK"));
-        }
     }
 
     // ---- persistence ----
@@ -629,4 +712,143 @@ public partial class CourseReviewPage : ContentPage, INotifyPropertyChanged
     public new event PropertyChangedEventHandler? PropertyChanged;
     protected new void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private void OnBucketTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is not string bucket) return;
+        var now = DateTime.UtcNow;
+        SrsCard? pick = null;
+        switch (bucket)
+        {
+            case "Avail":
+                pick = _cards.FirstOrDefault(c => c.Stage == Stage.Avail);
+                if (pick is not null)
+                {
+                    pick.Stage = Stage.Seen;
+                    pick.DueAt = now;
+                    pick.Interval = TimeSpan.Zero;
+                    pick.LearningIndex = -1;
+                }
+                break;
+            case "Seen":
+                pick = _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.Stage == Stage.Seen && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+            case "Learned":
+                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+            case "Skilled":
+            case "Memorized":
+                pick = _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault(c => !ReferenceEquals(c, _lastAnswered))
+                    ?? _cards.Where(c => c.InReview && c.CooldownUntil <= now)
+                             .OrderBy(c => c.DueAt)
+                             .FirstOrDefault();
+                break;
+        }
+        if (pick is not null)
+        {
+            _current = pick;
+            AfterPick();
+        }
+    }
+
+    private async void OnCloseTapped(object? s, EventArgs e)
+    {
+        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseCourseToReviewers(),
+            "Could not return to reviewers");
+    }
+
+    private async void OnSettingsTapped(object? s, EventArgs e)
+    {
+        // Push settings on the same Navigation stack to keep deck context and enable reliable close
+        var id = ReviewerId;
+        var title = Title;
+        if (id <= 0)
+        {
+            try
+            {
+                var reviewers = await _db.GetReviewersAsync();
+                var match = reviewers.FirstOrDefault(r => r.Title == title);
+                if (match is not null) id = match.Id;
+            }
+            catch { }
+        }
+        var page = new ReviewerSettingsPage { ReviewerId = id, ReviewerTitle = title };
+        await Navigator.PushAsync(page, Navigation);
+    }
+
+    // Overlay button handlers
+    private async void OnReviewMistakes(object? s, EventArgs e)
+    {
+        // Requeue items with streak == 0 and restart a fresh session
+        foreach (var c in _cards)
+        {
+            if (c.ReviewSuccessStreak == 0)
+            {
+                c.Stage = Stage.Seen;
+                c.DueAt = DateTime.UtcNow;
+                c.CooldownUntil = DateTime.MinValue;
+            }
+        }
+        _roundJustFinished = false;
+        SessionComplete = false;
+        await CompletionOverlay.FadeTo(0, 120);
+        _loaded = true;
+        await LoadDeckAsync();
+    }
+
+    private async void OnStudyMore(object? s, EventArgs e)
+    {
+        // Replay same deck with the same logic
+        _roundJustFinished = false;
+        SessionComplete = false;
+        await CompletionOverlay.FadeTo(0, 120);
+        _loaded = true;
+        await LoadDeckAsync();
+    }
+
+    private async void OnAddCards(object? s, EventArgs e)
+    {
+        await Navigator.PushAsync(new ReviewerEditorPage { ReviewerId = ReviewerId, ReviewerTitle = Title }, Navigation);
+    }
+
+    private async void OnBackToList(object? s, EventArgs e)
+    {
+        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseCourseToReviewers(),
+            "Could not return to reviewers");
+    }
+
+    private async void OnImageTapped(object? s, TappedEventArgs e)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(FaceImage)) return;
+            FullImage.Source = FaceImage;
+            ImageOverlay.IsVisible = true;
+            await ImageOverlay.FadeTo(1, 160, Easing.CubicOut);
+        }
+        catch { }
+    }
+
+    private async void OnCloseImageOverlay(object? s, TappedEventArgs e)
+    {
+        try
+        {
+            await ImageOverlay.FadeTo(0, 120, Easing.CubicIn);
+            ImageOverlay.IsVisible = false;
+            FullImage.Source = null;
+        }
+        catch { }
+    }
 }

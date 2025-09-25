@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:mindvault.Controls"
+    xmlns:conv="clr-namespace:mindvault.Converters"
     Shell.NavBarIsVisible="False">
 
   <!-- THEME -->
@@ -51,6 +52,9 @@
         </Setter.Value>
       </Setter>
     </Style>
+
+    <!-- Converters -->
+    <conv:InverseBoolConverter x:Key="InverseBoolConverter" />
   </ContentPage.Resources>
 
   <!-- BACKGROUND -->
@@ -145,7 +149,7 @@
         </Border>
 
         <!-- Flashcard -->
-        <Border Style="{StaticResource CardStyle}" Padding="14" HeightRequest="420">
+        <Border x:Name="CardBorder" Style="{StaticResource CardStyle}" Padding="14" HeightRequest="420">
           <Grid>
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto"/>
@@ -156,13 +160,28 @@
             <Label Text="{Binding FaceTag}" Grid.Row="0" FontSize="12"
                    TextColor="{StaticResource TextSecondary}" />
 
-            <ScrollView Grid.Row="1">
-              <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+            <!-- Content area: shows text+image, or centers text when no image -->
+            <Grid Grid.Row="1">
+              <!-- With image: stack text over image -->
+              <Grid IsVisible="{Binding FaceImageVisible}">
+                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                  <Label Text="{Binding FaceText}" FontSize="24" TextColor="{StaticResource TextPrimary}"
+                         HorizontalTextAlignment="Center" />
+                  <Image x:Name="FaceImageView" Source="{Binding FaceImage}" Aspect="AspectFit" HeightRequest="240">
+                    <Image.GestureRecognizers>
+                      <TapGestureRecognizer Tapped="OnImageTapped"/>
+                    </Image.GestureRecognizers>
+                  </Image>
+                </VerticalStackLayout>
+              </Grid>
+
+              <!-- No image: center text vertically/horizontally -->
+              <Grid IsVisible="{Binding FaceImageVisible, Converter={StaticResource InverseBoolConverter}}">
                 <Label Text="{Binding FaceText}" FontSize="24" TextColor="{StaticResource TextPrimary}"
-                       HorizontalTextAlignment="Center" />
-                <Image Source="{Binding FaceImage}" Aspect="AspectFit" HeightRequest="240" IsVisible="{Binding FaceImageVisible}"/>
-              </VerticalStackLayout>
-            </ScrollView>
+                       HorizontalOptions="Center" VerticalOptions="Center"
+                       HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+              </Grid>
+            </Grid>
 
             <!-- Bottom of card: skip chip + speaker -->
             <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Padding="0,10,0,0">
@@ -177,10 +196,13 @@
                 </Border.GestureRecognizers>
               </Border>
 
-              <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
+              <Border x:Name="SpeakButton" Grid.Column="2" WidthRequest="34" HeightRequest="34"
                       Stroke="#E8EDF2" StrokeThickness="1" StrokeShape="Ellipse" BackgroundColor="White" Margin="10,0,0,0">
                 <Label Text="&#xF028;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}"
                        HorizontalOptions="Center" VerticalOptions="Center"/>
+                <Border.GestureRecognizers>
+                  <TapGestureRecognizer Tapped="OnSpeakTapped"/>
+                </Border.GestureRecognizers>
               </Border>
             </Grid>
           </Grid>
@@ -221,8 +243,45 @@
 
       </VerticalStackLayout>
     </ScrollView>
-    
+
     <!-- Reusable bottom sheet lives at top Grid level -->
     <controls:BottomSheetMenu x:Name="MainMenu" Grid.RowSpan="2" ZIndex="50"/>
+
+    <!-- COMPLETION OVERLAY -->
+    <Grid x:Name="CompletionOverlay" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="{Binding SessionComplete}" Opacity="0">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" Padding="20" HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="320">
+        <Grid x:Name="ConfettiHost" Grid.RowSpan="6"/>
+        <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0" StrokeShape="RoundRectangle 16" Padding="18">
+          <VerticalStackLayout Spacing="8">
+            <Label Text="All Done!" FontAttributes="Bold" FontSize="20" HorizontalTextAlignment="Center"/>
+            <Label Text="{Binding Title}" FontSize="14" HorizontalTextAlignment="Center"/>
+            <Label Text="{Binding ElapsedText}" FontSize="12" HorizontalTextAlignment="Center"/>
+            <Grid ColumnDefinitions="*,*" Padding="0,8,0,0">
+              <Label Grid.Column="0" Text="Correct: {Binding CorrectCount}" HorizontalTextAlignment="Center"/>
+              <Label Grid.Column="1" Text="Wrong: {Binding WrongCount}" HorizontalTextAlignment="Center"/>
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,8,0,0">
+              <Button Text="Review Mistakes" Clicked="OnReviewMistakes"/>
+              <Button Grid.Column="1" Text="Study More" Clicked="OnStudyMore"/>
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Text="Add Cards" Clicked="OnAddCards"/>
+              <Button Grid.Column="1" Text="Back to List" Clicked="OnBackToList"/>
+            </Grid>
+          </VerticalStackLayout>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- IMAGE OVERLAY -->
+    <Grid x:Name="ImageOverlay" Grid.RowSpan="2" BackgroundColor="#B3000000" IsVisible="False" Opacity="0">
+      <Grid RowDefinitions="*" ColumnDefinitions="*" Padding="20" HorizontalOptions="Fill" VerticalOptions="Fill">
+        <Image x:Name="FullImage" Aspect="AspectFit" HorizontalOptions="Fill" VerticalOptions="Fill" />
+        <Grid.GestureRecognizers>
+          <TapGestureRecognizer Tapped="OnCloseImageOverlay"/>
+        </Grid.GestureRecognizers>
+      </Grid>
+    </Grid>
+
   </Grid>
 </ContentPage>

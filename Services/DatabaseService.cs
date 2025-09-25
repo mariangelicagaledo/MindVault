@@ -39,6 +39,9 @@ public class DatabaseService
     public Task<int> DeleteFlashcardsForReviewerAsync(int reviewerId)
         => _db.ExecuteAsync("DELETE FROM Flashcard WHERE ReviewerId = ?", reviewerId);
 
+    public Task<int> DeleteFlashcardAsync(int id)
+        => _db.ExecuteAsync("DELETE FROM Flashcard WHERE Id = ?", id);
+
     public Task<int> UpdateReviewerTitleAsync(int reviewerId, string newTitle)
         => _db.ExecuteAsync("UPDATE Reviewer SET Title = ? WHERE Id = ?", newTitle, reviewerId);
 }

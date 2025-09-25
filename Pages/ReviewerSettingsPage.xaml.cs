@@ -5,29 +5,69 @@ using Microsoft.Maui.Storage;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
 using mindvault.Utils.Messages;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace mindvault.Pages;
 
-public partial class ReviewerSettingsPage : ContentPage
+[QueryProperty(nameof(ReviewerId), "reviewerId")]
+[QueryProperty(nameof(ReviewerTitle), "reviewerTitle")]
+public partial class ReviewerSettingsPage : ContentPage, INotifyPropertyChanged
 {
-    public string ReviewerTitle { get; }
+    int _reviewerId;
+    string _reviewerTitle = string.Empty;
 
-    const string PrefRoundSize = "RoundSize";
-    const string PrefStudyMode = "StudyMode"; // "Default" or "Exam"
+    public int ReviewerId
+    {
+        get => _reviewerId;
+        set { if (_reviewerId == value) return; _reviewerId = value; OnPropertyChanged(); }
+    }
+
+    public string ReviewerTitle
+    {
+        get => _reviewerTitle;
+        set { if (_reviewerTitle == value) return; _reviewerTitle = value ?? string.Empty; OnPropertyChanged(); }
+    }
+
+    const string PrefRoundSize = "RoundSize"; // base key
+    const string PrefStudyMode = "StudyMode"; // base key
     const string PrefReviewStatePrefix = "ReviewState_"; // matches CourseReviewPage
 
     int _roundSize;
+    string _mode = "Default";
 
-    public ReviewerSettingsPage(string reviewerTitle = "Math Reviewer")
+    public ReviewerSettingsPage() : this("Math Reviewer") { }
+
+    public ReviewerSettingsPage(string reviewerTitle)
     {
         InitializeComponent();
-        ReviewerTitle = reviewerTitle;
-        _roundSize = Preferences.Get(PrefRoundSize, 10);
+        ReviewerTitle = reviewerTitle ?? string.Empty;
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
-        UpdateChipUI();
-        UpdateModeUI(Preferences.Get(PrefStudyMode, "Default"));
     }
+
+    protected override async void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        if (ReviewerId <= 0 && !string.IsNullOrWhiteSpace(ReviewerTitle))
+        {
+            try
+            {
+                var db = ServiceHelper.GetRequiredService<DatabaseService>();
+                var reviewers = await db.GetReviewersAsync();
+                ReviewerId = reviewers.FirstOrDefault(r => r.Title == ReviewerTitle)?.Id ?? 0;
+            }
+            catch { }
+        }
+        // Load per-deck settings
+        _roundSize = Preferences.Get(DeckKey(PrefRoundSize, ReviewerId), Preferences.Get(PrefRoundSize, 10));
+        _mode = Preferences.Get(DeckKey(PrefStudyMode, ReviewerId), Preferences.Get(PrefStudyMode, "Default"));
+        BindingContext = this; // ensure latest props are bound
+        UpdateChipUI();
+        UpdateModeUI(_mode);
+    }
+
+    static string DeckKey(string key, int id) => id > 0 ? $"{key}_{id}" : key;
 
     void UpdateChipUI()
     {
@@ -78,26 +118,31 @@ public partial class ReviewerSettingsPage : ContentPage
 
     private void OnDefaultModeTapped(object? sender, TappedEventArgs e)
     {
-        Preferences.Set(PrefStudyMode, "Default");
-        UpdateModeUI("Default");
-        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage("Default"));
+        if (_mode == "Default") return; // no change
+        _mode = "Default";
+        Preferences.Set(DeckKey(PrefStudyMode, ReviewerId), _mode);
+        UpdateModeUI(_mode);
+        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage(ReviewerId, _mode));
     }
 
     private void OnExamModeTapped(object? sender, TappedEventArgs e)
     {
-        Preferences.Set(PrefStudyMode, "Exam");
-        UpdateModeUI("Exam");
-        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage("Exam"));
+        if (_mode == "Exam") return; // no change
+        _mode = "Exam";
+        Preferences.Set(DeckKey(PrefStudyMode, ReviewerId), _mode);
+        UpdateModeUI(_mode);
+        WeakReferenceMessenger.Default.Send(new StudyModeChangedMessage(ReviewerId, _mode));
     }
 
     private void OnRoundSizeTapped(object? sender, TappedEventArgs e)
     {
         if (e.Parameter is string s && int.TryParse(s, out var n))
         {
+            if (n == _roundSize) return; // no change
             _roundSize = n;
-            Preferences.Set(PrefRoundSize, _roundSize);
+            Preferences.Set(DeckKey(PrefRoundSize, ReviewerId), _roundSize);
             UpdateChipUI();
-            WeakReferenceMessenger.Default.Send(new RoundSizeChangedMessage(_roundSize));
+            WeakReferenceMessenger.Default.Send(new RoundSizeChangedMessage(ReviewerId, _roundSize));
         }
     }
 
@@ -106,16 +151,19 @@ public partial class ReviewerSettingsPage : ContentPage
         var confirm = await this.DisplayAlert("Reset Progress", "This will erase your review progress for this course. Continue?", "Reset", "Cancel");
         if (!confirm) return;
 
-        // We need the reviewer id to clear its saved state; try to resolve by title
         try
         {
-            var db = ServiceHelper.GetRequiredService<DatabaseService>();
-            var reviewers = await db.GetReviewersAsync();
-            var match = reviewers.FirstOrDefault(r => r.Title == ReviewerTitle);
-            if (match != null)
+            int reviewerId = ReviewerId;
+            if (reviewerId <= 0 && !string.IsNullOrWhiteSpace(ReviewerTitle))
             {
-                Preferences.Remove(PrefReviewStatePrefix + match.Id);
-                WeakReferenceMessenger.Default.Send(new ProgressResetMessage(match.Id));
+                var db = ServiceHelper.GetRequiredService<DatabaseService>();
+                var reviewers = await db.GetReviewersAsync();
+                reviewerId = reviewers.FirstOrDefault(r => r.Title == ReviewerTitle)?.Id ?? 0;
+            }
+            if (reviewerId > 0)
+            {
+                Preferences.Remove(PrefReviewStatePrefix + reviewerId);
+                WeakReferenceMessenger.Default.Send(new ProgressResetMessage(reviewerId));
                 await this.DisplayAlert("Progress Reset", "Your review progress has been cleared.", "OK");
             }
             else
@@ -131,8 +179,17 @@ public partial class ReviewerSettingsPage : ContentPage
 
     private async void OnCloseTapped(object? sender, EventArgs e)
     {
-        Debug.WriteLine($"[ReviewerSettingsPage] CloseSettingsToReviewers() -> ReviewersPage");
-        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseSettingsToReviewers(),
-            "Could not return to reviewers");
+        try
+        {
+            await Navigator.PopAsync(Navigation);
+        }
+        catch
+        {
+            await Navigator.GoToAsync("///ReviewersPage");
+        }
     }
+
+    public new event PropertyChangedEventHandler? PropertyChanged;
+    protected new void OnPropertyChanged([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

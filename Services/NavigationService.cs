@@ -1,12 +1,18 @@
 using System.Diagnostics;
+using Microsoft.Maui.ApplicationModel;
 
 namespace mindvault.Services;
 
 public static class NavigationService
 {
-    public static Task Go(string route) => Shell.Current.GoToAsync(route);
-    public static Task Back() => Shell.Current.GoToAsync("..");
-    public static Task ToRoot() => Shell.Current.GoToAsync($"//{nameof(Pages.ReviewersPage)}");
+    static Task GoOnMainAsync(string route)
+        => MainThread.IsMainThread
+            ? Shell.Current.GoToAsync(route)
+            : MainThread.InvokeOnMainThreadAsync(async () => await Shell.Current.GoToAsync(route));
+
+    public static Task Go(string route) => GoOnMainAsync(route);
+    public static Task Back() => GoOnMainAsync("..");
+    public static Task ToRoot() => GoOnMainAsync($"//{nameof(Pages.ReviewersPage)}");
 
     // Burger:
     public static Task OpenImport() => Go(nameof(Pages.ImportPage));
@@ -24,22 +30,27 @@ public static class NavigationService
 
     // ReviewersPage:
     public static Task OpenCourse() => Go(nameof(Pages.CourseReviewPage));
-    public static Task OpenReviewerSettings() => Go(nameof(Pages.ReviewerSettingsPage));
+
+    // Reviewer Settings (use absolute route to avoid relative routing error)
+    public static Task OpenReviewerSettings() => Go("///ReviewerSettingsPage");
+    public static Task OpenReviewerSettings(string reviewerTitle)
+        => Go($"///ReviewerSettingsPage?reviewerTitle={System.Uri.EscapeDataString(reviewerTitle)}");
+    public static Task OpenReviewerSettings(int reviewerId, string reviewerTitle)
+        => Go($"///ReviewerSettingsPage?reviewerId={reviewerId}&reviewerTitle={System.Uri.EscapeDataString(reviewerTitle)}");
 
     // CourseReviewPage:
-    public static Task CloseCourseToReviewers() => Back();
+    public static Task CloseCourseToReviewers() => Go("///ReviewersPage");
 
     // ReviewerSettingsPage:
     public static async Task CloseSettingsToReviewers()
     {
         try
         {
-            await Back();
+            await Back(); // return to the actual instance of CourseReviewPage on the stack
         }
         catch
         {
-            // Fallback if relative back fails
-            await Go(nameof(Pages.CourseReviewPage));
+            await Go("///ReviewersPage"); // if no stack, go to list rather than a generic CourseReviewPage
         }
     }
 }

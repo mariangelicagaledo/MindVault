@@ -40,8 +40,22 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         PageHelpers.SetupHamburgerMenu(this);
     }
 
+    async Task EnsureReviewerIdAsync()
+    {
+        if (ReviewerId > 0) return;
+        if (string.IsNullOrWhiteSpace(ReviewerTitle)) return;
+        try
+        {
+            var reviewers = await _db.GetReviewersAsync();
+            var match = reviewers.FirstOrDefault(r => r.Title == ReviewerTitle);
+            if (match is not null) ReviewerId = match.Id;
+        }
+        catch { }
+    }
+
     async void LoadCardsAsync()
     {
+        await EnsureReviewerIdAsync();
         if (ReviewerId <= 0) return;
         Items.Clear();
         var cards = await _db.GetFlashcardsAsync(ReviewerId);
@@ -121,7 +135,15 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     private async void OnSaveTapped(object? sender, TappedEventArgs e)
     { if (sender is not Element el || el.BindingContext is not ReviewItem item) return; item.IsSaved = true; RenumberSaved(); await SaveAllAsync(); }
     private async void OnDeleteTapped(object? sender, TappedEventArgs e)
-    { if (sender is not Element el || el.BindingContext is not ReviewItem item) return; Items.Remove(item); RenumberSaved(); await SaveAllAsync(); }
+    {
+        if (sender is not Element el || el.BindingContext is not ReviewItem item) return;
+        var confirm = await DisplayAlert("Delete Card", "Are you sure you want to delete this card?", "Delete", "Cancel");
+        if (!confirm) return;
+        Items.Remove(item);
+        RenumberSaved();
+        await SaveAllAsync();
+        await PageHelpers.SafeDisplayAlertAsync(this, "Deleted", "Card removed.");
+    }
     private async void OnAddNewTapped(object? sender, TappedEventArgs e)
     { var editing = Items.LastOrDefault(x => !x.IsSaved); if (editing is not null) { editing.IsSaved = true; RenumberSaved(); await SaveAllAsync(); } Items.Add(new ReviewItem()); }
     private async void OnCardTapped(object? sender, TappedEventArgs e)
@@ -144,6 +166,7 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
 
     async Task SaveAllAsync()
     {
+        await EnsureReviewerIdAsync();
         if (ReviewerId <= 0) return;
         // Simple replace-all strategy for now
         await _db.DeleteFlashcardsForReviewerAsync(ReviewerId);
