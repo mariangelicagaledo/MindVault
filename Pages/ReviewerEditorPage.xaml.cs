@@ -17,6 +17,8 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
 {
     readonly DatabaseService _db = ServiceHelper.GetRequiredService<DatabaseService>();
 
+    const int MinCards = 5; // required minimum contentful cards per deck
+
     int _reviewerId;
     public int ReviewerId
     {
@@ -63,6 +65,7 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         {
             Items.Add(new ReviewItem
             {
+                Id = c.Id,
                 Question = c.Question,
                 Answer = c.Answer,
                 QuestionImagePath = c.QuestionImagePath,
@@ -139,8 +142,21 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         if (sender is not Element el || el.BindingContext is not ReviewItem item) return;
         var confirm = await DisplayAlert("Delete Card", "Are you sure you want to delete this card?", "Delete", "Cancel");
         if (!confirm) return;
+
+        // Compute contentful saved count after deletion
+        int currentSaved = Items.Count(i => i.IsSaved && HasContent(i));
+        int delta = (item.IsSaved && HasContent(item)) ? 1 : 0;
+        if (currentSaved - delta < MinCards)
+        {
+            await DisplayAlert("Minimum Cards", $"A deck must have at least {MinCards} cards.", "OK");
+            return;
+        }
+
+        await EnsureReviewerIdAsync();
+        // Remove from UI first
         Items.Remove(item);
         RenumberSaved();
+        // Persist: rewrite deck to keep ordering consistent
         await SaveAllAsync();
         await PageHelpers.SafeDisplayAlertAsync(this, "Deleted", "Card removed.");
     }
@@ -157,8 +173,19 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         // Finalize any in-progress (unsaved) cards that have content
         bool changed = false;
         foreach (var it in Items.Where(x => !x.IsSaved).ToList())
-        { bool hasContent = !string.IsNullOrWhiteSpace(it.Question) || !string.IsNullOrWhiteSpace(it.Answer) || it.QuestionImageVisible || it.AnswerImageVisible; if (hasContent) { it.IsSaved = true; changed = true; } }
+        {
+            bool hasContent = HasContent(it);
+            if (hasContent) { it.IsSaved = true; changed = true; }
+        }
         if (changed) RenumberSaved();
+
+        // Enforce minimum before leaving
+        int savedCount = Items.Count(x => x.IsSaved && HasContent(x));
+        if (savedCount < MinCards)
+        {
+            await DisplayAlert("Minimum Cards", $"Please add at least {MinCards} cards before saving.", "OK");
+            return;
+        }
 
         await SaveAllAsync();
         await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseEditorToReviewers(), "Could not return to reviewers");
@@ -168,10 +195,19 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     {
         await EnsureReviewerIdAsync();
         if (ReviewerId <= 0) return;
-        // Simple replace-all strategy for now
+
+        // Prepare contentful saved cards first; do not persist if below minimum
+        var saved = Items.Where(x => x.IsSaved && HasContent(x)).ToList();
+        if (saved.Count < MinCards)
+        {
+            await DisplayAlert("Minimum Cards", $"A deck must have at least {MinCards} cards.", "OK");
+            return; // keep existing DB intact to avoid data loss
+        }
+
+        // Simple replace-all strategy
         await _db.DeleteFlashcardsForReviewerAsync(ReviewerId);
         int order = 1;
-        foreach (var it in Items.Where(x => x.IsSaved))
+        foreach (var it in saved)
         {
             var card = new Flashcard
             {
@@ -187,6 +223,14 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         }
     }
 
+    static bool HasContent(ReviewItem it)
+    {
+        return !string.IsNullOrWhiteSpace(it.Question)
+            || !string.IsNullOrWhiteSpace(it.Answer)
+            || it.QuestionImageVisible
+            || it.AnswerImageVisible;
+    }
+
     // Assign sequential numbers to saved cards
     private void RenumberSaved()
     { int i = 1; foreach (var it in Items.Where(x => x.IsSaved)) it.Number = i++; }
@@ -194,6 +238,7 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     // === Simple model ===
     public class ReviewItem : INotifyPropertyChanged
     {
+        int _id;
         string _question = string.Empty;
         string _answer = string.Empty;
         string _qImg = string.Empty;
@@ -201,6 +246,7 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         bool _isSaved;
         int _number;
 
+        public int Id { get => _id; set { if (_id == value) return; _id = value; OnPropertyChanged(); } }
         public string Question { get => _question; set { if (_question == value) return; _question = value ?? string.Empty; OnPropertyChanged(); } }
         public string Answer { get => _answer; set { if (_answer == value) return; _answer = value ?? string.Empty; OnPropertyChanged(); } }
         public string QuestionImagePath { get => _qImg; set { if (_qImg == value) return; _qImg = value ?? string.Empty; OnPropertyChanged(); OnPropertyChanged(nameof(QuestionImageVisible)); } }

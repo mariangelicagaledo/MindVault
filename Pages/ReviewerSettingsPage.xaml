@@ -70,7 +70,6 @@
         <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
           <Label Text="{Binding ReviewerTitle}" FontAttributes="Bold" FontSize="18"
                  TextColor="{StaticResource TextPrimary}" />
-          <Label Text="&#xF013;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource Primary}" />
         </HorizontalStackLayout>
         <!-- X Close -->
         <Border Grid.Column="2" WidthRequest="34" HeightRequest="34"
