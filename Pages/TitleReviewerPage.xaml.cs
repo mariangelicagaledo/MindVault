@@ -34,12 +34,12 @@ public partial class TitleReviewerPage : ContentPage
             var reviewer = new Reviewer { Title = title };
             await _db.AddReviewerAsync(reviewer);
 
-            Debug.WriteLine($"[TitleReviewerPage] Created reviewer #{reviewer.Id} '{reviewer.Title}' -> ReviewerEditorPage");
+            Debug.WriteLine($"[TitleReviewerPage] Created reviewer #{reviewer.Id} '{reviewer.Title}' -> AddFlashcardsPage");
 
             // Navigate to editor, passing id and title (single-shot)
             await PageHelpers.SafeNavigateAsync(this,
-                async () => await NavigationService.CreateNewReviewer(reviewer.Id, reviewer.Title),
-                "Could not create new reviewer");
+                async () => await Shell.Current.GoToAsync($"///AddFlashcardsPage?id={reviewer.Id}&title={Uri.EscapeDataString(reviewer.Title)}"),
+                "Could not open add flashcards page");
         }
         finally
         {

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="mindvault.Pages.AddFlashcardsPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Shell.NavBarIsVisible="False">
+  <!-- Theme tokens (aligned with TitleReviewerPage) -->
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#47505B</Color>
+    <Color x:Key="Divider">#E7E7E7</Color>
+
+    <!-- Card style -->
+    <Style x:Key="CardStyle" TargetType="Border">
+      <Setter Property="StrokeThickness" Value="0" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 22" />
+      <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+      <Setter Property="Padding" Value="22" />
+      <Setter Property="Margin" Value="16,14,16,0" />
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.20" Radius="18">
+            <Shadow.Offset><Point X="0" Y="10"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Primary filled pill -->
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="HeightRequest" Value="56" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+      <Setter Property="Padding" Value="20,14" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="{StaticResource Primary}" Offset="0" />
+            <GradientStop Color="{StaticResource PrimaryDark}" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8"/></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="VisualStateManager.VisualStateGroups">
+        <Setter.Value>
+          <VisualStateGroupList>
+            <VisualStateGroup>
+              <VisualState x:Name="Normal"/>
+              <VisualState x:Name="Pressed">
+                <VisualState.Setters>
+                  <Setter Property="VisualElement.Opacity" Value="0.92"/>
+                </VisualState.Setters>
+              </VisualState>
+            </VisualStateGroup>
+          </VisualStateGroupList>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Secondary neutral pill -->
+    <Style x:Key="SecondaryPill" TargetType="Border" BasedOn="{StaticResource PrimaryPill}">
+      <Setter Property="BackgroundColor" Value="#F1F5F8" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#F1F5F8" Offset="0" />
+            <GradientStop Color="#E3EBF1" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <!-- Background -->
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Header (white bar) -->
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0" Padding="16,12"
+            StrokeShape="RoundRectangle 0,0,18,18" Margin="0,0,0,8">
+      <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+        <!-- Deck title left -->
+        <Label x:Name="DeckTitleLabel" TextColor="{StaticResource TextPrimary}" FontAttributes="Bold" FontSize="18" VerticalOptions="Center" />
+        <!-- Close button right -->
+        <Border Grid.Column="1" WidthRequest="34" HeightRequest="34" Stroke="#E8EDF2" StrokeThickness="1" StrokeShape="Ellipse" BackgroundColor="White">
+          <Label Text="&#xF00D;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" VerticalOptions="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnClose" />
+          </Border.GestureRecognizers>
+        </Border>
+      </Grid>
+    </Border>
+
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Padding="0,4,0,40" Spacing="0">
+        <Label Text="Add Flashcards" FontSize="26" FontAttributes="Bold" TextColor="White" Margin="24,4,24,18" />
+
+        <!-- Manual Section -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="14">
+            <Label Text="Manual" FontAttributes="Bold" FontSize="20" TextColor="{StaticResource TextPrimary}" />
+            <Border Style="{StaticResource PrimaryPill}">
+              <Grid>
+                <Label Text="TYPE FLASHCARDS  +" FontAttributes="Bold" FontSize="15" TextColor="White" HorizontalOptions="Center" />
+              </Grid>
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnTypeFlashcards" />
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Text="Add cards manually (supports images)." FontSize="12" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+          </VerticalStackLayout>
+        </Border>
+
+        <!-- Divider -->
+        <Grid Margin="0,26" Padding="24,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <BoxView Grid.Column="0" HeightRequest="1" BackgroundColor="#2F6EA8" VerticalOptions="Center" />
+            <Label Grid.Column="1" Text="—  OR  —" TextColor="#E0EEF7" FontSize="12" Margin="12,0" />
+          <BoxView Grid.Column="2" HeightRequest="1" BackgroundColor="#2F6EA8" VerticalOptions="Center" />
+        </Grid>
+
+        <!-- AI Section -->
+        <Border Style="{StaticResource CardStyle}">
+          <VerticalStackLayout Spacing="14">
+            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+              <Label Text="AI-Powered" FontAttributes="Bold" FontSize="20" TextColor="{StaticResource TextPrimary}" />
+              <Label Text="NEW" FontSize="12" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+
+            <Border Style="{StaticResource SecondaryPill}">
+              <Label Text="IMPORT FLASHCARDS" FontAttributes="Bold" FontSize="14" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnImportPaste" />
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Text="Import .txt export file into this deck." FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+
+            <Border Style="{StaticResource SecondaryPill}">
+              <Label Text="SUMMARIZE FROM CONTENT" FontAttributes="Bold" FontSize="14" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" />
+              <Border.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnSummarize" />
+              </Border.GestureRecognizers>
+            </Border>
+            <Label Text="Use on-device AI to extract cards." FontSize="11" TextColor="{StaticResource TextSecondary}" HorizontalTextAlignment="Center" />
+          </VerticalStackLayout>
+        </Border>
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+</ContentPage>

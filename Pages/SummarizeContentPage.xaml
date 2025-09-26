@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="mindvault.Pages.SummarizeContentPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             Shell.NavBarIsVisible="False">
+  <ContentPage.Resources>
+    <Color x:Key="Primary">#31B6D8</Color>
+    <Color x:Key="PrimaryDark">#0B57C1</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="TextPrimary">#1C1C1C</Color>
+    <Color x:Key="TextSecondary">#4A5864</Color>
+    <Color x:Key="Panel">#0F1922</Color>
+    <Color x:Key="PanelBorder">#1F2A33</Color>
+
+    <Style x:Key="PrimaryPill" TargetType="Border">
+      <Setter Property="HeightRequest" Value="58" />
+      <Setter Property="StrokeShape" Value="RoundRectangle 40" />
+      <Setter Property="Padding" Value="24,16" />
+      <Setter Property="Background">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="{StaticResource Primary}" Offset="0" />
+            <GradientStop Color="{StaticResource PrimaryDark}" Offset="1" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+      <Setter Property="Shadow">
+        <Setter.Value>
+          <Shadow Opacity="0.25" Radius="16">
+            <Shadow.Offset><Point X="0" Y="8" /></Shadow.Offset>
+          </Shadow>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </ContentPage.Resources>
+
+  <ContentPage.Background>
+    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+      <GradientStop Color="#3CC5F0" Offset="0" />
+      <GradientStop Color="#0B57C1" Offset="1" />
+    </LinearGradientBrush>
+  </ContentPage.Background>
+
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0" BackgroundColor="White" StrokeThickness="0" Padding="16,12" StrokeShape="RoundRectangle 0,0,18,18" Margin="0,0,0,8">
+      <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+        <!-- Deck title on left -->
+        <Label x:Name="DeckTitleLabel" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource TextPrimary}" VerticalOptions="Center" />
+        <!-- Close X on right -->
+        <Border Grid.Column="1" WidthRequest="34" HeightRequest="34" Stroke="#E8EDF2" StrokeThickness="1" StrokeShape="Ellipse" BackgroundColor="White">
+          <Label Text="&#xF00D;" FontFamily="FAS" FontSize="14" TextColor="{StaticResource TextPrimary}" HorizontalOptions="Center" VerticalOptions="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnClose" />
+          </Border.GestureRecognizers>
+        </Border>
+      </Grid>
+    </Border>
+
+    <ScrollView Grid.Row="1">
+      <VerticalStackLayout Padding="24,8,24,40" Spacing="22">
+        <Label Text="Summarize from Content" FontSize="26" FontAttributes="Bold" TextColor="White" />
+
+        <!-- Content input panel -->
+        <Border BackgroundColor="{StaticResource Panel}" StrokeShape="RoundRectangle 16" StrokeThickness="1" Stroke="{StaticResource PanelBorder}" Padding="0" HeightRequest="260">
+          <Grid>
+            <Editor x:Name="ContentEditor" BackgroundColor="Transparent" TextColor="White" Placeholder="Tap to type or paste your content" PlaceholderColor="#6E7C85" Margin="14" />
+          </Grid>
+        </Border>
+
+        <!-- OR divider -->
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <BoxView Grid.Column="0" HeightRequest="1" BackgroundColor="#2F6EA8" VerticalOptions="Center" />
+          <Label Grid.Column="1" Text="OR" FontSize="13" TextColor="#E0EEF7" Margin="12,0" />
+          <BoxView Grid.Column="2" HeightRequest="1" BackgroundColor="#2F6EA8" VerticalOptions="Center" />
+        </Grid>
+
+        <!-- Upload File -->
+        <Border Style="{StaticResource PrimaryPill}">
+          <Label Text="UPLOAD FILE" FontAttributes="Bold" FontSize="15" TextColor="White" HorizontalOptions="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnUploadFile" />
+          </Border.GestureRecognizers>
+        </Border>
+        <Label Text="(.pptx, .txt only)" FontSize="12" TextColor="#E0EEF7" HorizontalTextAlignment="Center" />
+
+        <!-- Generate cards button shown when there is content -->
+        <Border x:Name="GenerateButton" Style="{StaticResource PrimaryPill}" IsVisible="False">
+          <Label Text="GENERATE FLASHCARDS" FontAttributes="Bold" FontSize="15" TextColor="White" HorizontalOptions="Center" />
+          <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnGenerate" />
+          </Border.GestureRecognizers>
+        </Border>
+        <Label x:Name="StatusLabel" Text="" FontSize="12" TextColor="#E0EEF7" />
+      </VerticalStackLayout>
+    </ScrollView>
+  </Grid>
+</ContentPage>

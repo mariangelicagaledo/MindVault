@@ -29,6 +29,8 @@ public static class MauiProgram
 
         // Multiplayer services
         builder.Services.AddSingleton<MultiplayerService>();
+        // Offline NER question generator
+        builder.Services.AddSingleton<OfflineNerQuestionService>();
 
 #if DEBUG
         builder.Logging.AddDebug();

@@ -29,6 +29,14 @@
   <ShellContent Route="ReviewerEditorPage"
                 ContentTemplate="{DataTemplate pages:ReviewerEditorPage}" />
 
+  <!-- Add Flashcards -->
+  <ShellContent Route="AddFlashcardsPage"
+                ContentTemplate="{DataTemplate pages:AddFlashcardsPage}" />
+
+  <!-- Summarize Content -->
+  <ShellContent Route="SummarizeContentPage"
+                ContentTemplate="{DataTemplate pages:SummarizeContentPage}" />
+
   <!-- Reviewers -->
   <ShellContent Route="ReviewersPage"
                 ContentTemplate="{DataTemplate pages:ReviewersPage}" />

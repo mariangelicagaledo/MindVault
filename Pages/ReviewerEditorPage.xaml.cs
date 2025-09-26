@@ -35,11 +35,64 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
 
     public ObservableCollection<ReviewItem> Items { get; } = new();
 
+    bool _allowNavigationOnce; // set when we already handled warning & are programmatically navigating
+
     public ReviewerEditorPage()
     {
         InitializeComponent();
         BindingContext = this;
         PageHelpers.SetupHamburgerMenu(this);
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        if (Shell.Current is not null)
+            Shell.Current.Navigating += OnShellNavigating; // global guard
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (Shell.Current is not null)
+            Shell.Current.Navigating -= OnShellNavigating;
+    }
+
+    async void OnShellNavigating(object? sender, ShellNavigatingEventArgs e)
+    {
+        try
+        {
+            if (_allowNavigationOnce) { _allowNavigationOnce = false; return; }
+            // Only guard if current page is this editor and target is different page
+            if (Shell.Current?.CurrentPage != this) return;
+            // Ignore internal self-navigation
+            if (e.Target.Location.OriginalString.Contains(nameof(ReviewerEditorPage))) return;
+
+            int contentful = Items.Count(i => HasContent(i));
+            if (contentful >= MinCards)
+            {
+                // Save deck silently then allow navigation
+                await SaveAllAsync();
+                return;
+            }
+
+            // Cancel navigation and prompt
+            e.Cancel();
+            bool leave = await DisplayAlert("Incomplete Deck", $"This deck has only {contentful} card(s). Leaving will DELETE the deck. Continue?", "Delete & Exit", "Stay");
+            if (!leave) return;
+
+            // Delete and then navigate manually to the original target
+            try
+            {
+                await EnsureReviewerIdAsync();
+                if (ReviewerId > 0)
+                    await _db.DeleteReviewerCascadeAsync(ReviewerId);
+            }
+            catch { }
+            _allowNavigationOnce = true; // allow next navigation
+            await Shell.Current.GoToAsync(e.Target.Location, true);
+        }
+        catch { }
     }
 
     async Task EnsureReviewerIdAsync()
@@ -96,7 +149,6 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     {
         try
         {
-            // Determine the ReviewItem in context
             if (sender is not Element el) return;
             var ctx = el.BindingContext as ReviewItem ?? (el.Parent as Element)?.BindingContext as ReviewItem;
             if (ctx is null) return;
@@ -143,20 +195,16 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         var confirm = await DisplayAlert("Delete Card", "Are you sure you want to delete this card?", "Delete", "Cancel");
         if (!confirm) return;
 
-        // Compute contentful saved count after deletion
         int currentSaved = Items.Count(i => i.IsSaved && HasContent(i));
         int delta = (item.IsSaved && HasContent(item)) ? 1 : 0;
         if (currentSaved - delta < MinCards)
         {
-            await DisplayAlert("Minimum Cards", $"A deck must have at least {MinCards} cards.", "OK");
-            return;
+            await DisplayAlert("Minimum Cards", $"Deleting this would leave fewer than {MinCards} cards (deck will be deleted if you exit without adding more).", "OK");
         }
 
         await EnsureReviewerIdAsync();
-        // Remove from UI first
         Items.Remove(item);
         RenumberSaved();
-        // Persist: rewrite deck to keep ordering consistent
         await SaveAllAsync();
         await PageHelpers.SafeDisplayAlertAsync(this, "Deleted", "Card removed.");
     }
@@ -165,30 +213,47 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
     private async void OnCardTapped(object? sender, TappedEventArgs e)
     { if (sender is not Element el || el.BindingContext is not ReviewItem item) return; var editing = Items.FirstOrDefault(x => !x.IsSaved); if (editing is not null) { editing.IsSaved = true; RenumberSaved(); await SaveAllAsync(); } item.IsSaved = false; }
 
-    // Check icon navigation handler
-    private async void OnCheckTapped(object? sender, EventArgs e)
+    // New unified exit handler for check button & hardware back
+    private async Task<bool> AttemptExitAsync()
     {
-        Debug.WriteLine($"[ReviewerEditorPage] CloseEditorToReviewers() -> ReviewersPage");
+        int contentful = Items.Count(i => HasContent(i));
+        if (contentful < MinCards)
+        {
+            bool leave = await DisplayAlert("Incomplete Deck", $"This deck has only {contentful} card(s). Leaving will DELETE the deck. Continue?", "Delete & Exit", "Stay");
+            if (!leave) return false;
+            try
+            {
+                await EnsureReviewerIdAsync();
+                if (ReviewerId > 0)
+                    await _db.DeleteReviewerCascadeAsync(ReviewerId);
+            }
+            catch { }
+            _allowNavigationOnce = true;
+            await NavigationService.CloseEditorToReviewers();
+            return true;
+        }
 
-        // Finalize any in-progress (unsaved) cards that have content
         bool changed = false;
         foreach (var it in Items.Where(x => !x.IsSaved).ToList())
         {
-            bool hasContent = HasContent(it);
-            if (hasContent) { it.IsSaved = true; changed = true; }
+            if (HasContent(it)) { it.IsSaved = true; changed = true; }
         }
         if (changed) RenumberSaved();
-
-        // Enforce minimum before leaving
-        int savedCount = Items.Count(x => x.IsSaved && HasContent(x));
-        if (savedCount < MinCards)
-        {
-            await DisplayAlert("Minimum Cards", $"Please add at least {MinCards} cards before saving.", "OK");
-            return;
-        }
-
         await SaveAllAsync();
-        await PageHelpers.SafeNavigateAsync(this, async () => await NavigationService.CloseEditorToReviewers(), "Could not return to reviewers");
+        _allowNavigationOnce = true;
+        await NavigationService.CloseEditorToReviewers();
+        return true;
+    }
+
+    private async void OnCheckTapped(object? sender, EventArgs e)
+    {
+        await AttemptExitAsync();
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        _ = AttemptExitAsync();
+        return true; // we handle navigation
     }
 
     async Task SaveAllAsync()
@@ -196,15 +261,9 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
         await EnsureReviewerIdAsync();
         if (ReviewerId <= 0) return;
 
-        // Prepare contentful saved cards first; do not persist if below minimum
         var saved = Items.Where(x => x.IsSaved && HasContent(x)).ToList();
-        if (saved.Count < MinCards)
-        {
-            await DisplayAlert("Minimum Cards", $"A deck must have at least {MinCards} cards.", "OK");
-            return; // keep existing DB intact to avoid data loss
-        }
+        if (saved.Count == 0) return; // nothing to save (may later delete on exit)
 
-        // Simple replace-all strategy
         await _db.DeleteFlashcardsForReviewerAsync(ReviewerId);
         int order = 1;
         foreach (var it in saved)
@@ -231,11 +290,9 @@ public partial class ReviewerEditorPage : ContentPage, INotifyPropertyChanged
             || it.AnswerImageVisible;
     }
 
-    // Assign sequential numbers to saved cards
     private void RenumberSaved()
     { int i = 1; foreach (var it in Items.Where(x => x.IsSaved)) it.Number = i++; }
 
-    // === Simple model ===
     public class ReviewItem : INotifyPropertyChanged
     {
         int _id;
