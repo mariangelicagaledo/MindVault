@@ -1,0 +1,135 @@
+Reviewer: ITEC 116 System Integration and Architecture
+
+Questions: 34
+
+Q: An array of components designed to accomplish a particular objective according to plan.
+A: SYSTEM
+
+Q: A way of understanding an entity in terms of its purpose, as three steps.
+A: SYSTEMS THINKING
+
+Q: What are the three major steps in systems thinking?
+A: - Identify a containing whole (system), of which the thing to be explained is a part
+- Explain the behavior or properties of the containing whole
+- Explain the behavior or properties of the thing to be explained in terms of its role(s) or function(s) within its containing whole
+
+Q: The combination of inter-related elements to achieve a common objective(s).
+A: SYSTEM INTEGRATION
+
+Q: The architecture of a system defines its high-level structure, exposing its gross organization as a collection of interacting components.
+A: System Architecture
+
+Q: What are the 5 elements needed to model a software architecture?
+A: - Components
+- Connectors
+- Systems
+- Properties
+- Styles
+
+Q: What are the three sources of Information Systems (IS) development projects?
+A: - Problems
+- An Opportunity
+- A Directive
+
+Q: Undesirable situations that prevent the business from fully achieving its purpose, goals, and objectives.
+A: Problems
+
+Q: A chance to improve the business even in the absence of specific problems.
+A: An Opportunity
+
+Q: A new requirement that is imposed by management, government, or some external influence.
+A: A Directive
+
+Q: The people involved in or affected by project activities.
+A: STAKEHOLDERS
+
+Q: Who are the stakeholders in a project?
+A: - the project sponsor and project team
+- support staff
+- customers
+- users
+- suppliers
+- opponents to the project
+
+Q: What helps IT projects succeed according to the Standish Group?
+A: - Executive support
+- User involvement
+- Experienced project manager
+- Clear business objectives
+- Minimized scope
+- Standard software infrastructure
+- Firm basic requirements
+- Formal methodology
+- Reliable estimates
+
+Q: What are the four frames for analyzing a formal organization?
+A: - Structural Frame
+- Political Frame
+- Human Resources Frame
+- Symbolic Frame
+
+Q: Focuses on roles and responsibilities, coordination and control.
+A: Structural Frame
+
+Q: Assumes organizations are coalitions composed of varied individuals and interest groups.
+A: Political Frame
+
+Q: Focuses on providing harmony between needs of the organization and needs of people.
+A: Human Resources Frame
+
+Q: Focuses on symbols and meanings related to events. Culture is important.
+A: Symbolic Frame
+
+Q: What are the four basic organizational structures?
+A: - Functional
+- Project-based
+- Matrix
+- Divisional
+
+Q: People who do similar tasks, have similar skills and/or jobs in an organization are grouped into this structure.
+A: FUNCTIONAL STRUCTURE
+
+Q: The company coordinates inter-group relationships to create a work team that can readily meet the needs of a certain customer or group of customers.
+A: DIVISIONAL STRUCTURE
+
+Q: Groups people in two different ways: by the function they perform and by the product team they are working with.
+A: MATRIX STRUCTURE
+
+Q: Teams are put together based on the number of members needed to produce the product or complete the project.
+A: PROJECT ORGANIZATION STRUCTURE
+
+Q: What does IT stand for?
+A: Information Technology
+
+Q: What does IS stand for?
+A: Information Systems
+
+Q: What does SI stand for?
+A: Systems Integration
+
+Q: What does COTS stand for?
+A: commercial-off-the-shelf
+
+Q: What does BCP stand for?
+A: Business Continuity Planning
+
+Q: Why is an architectural view of a system considered a priority?
+A: To help in the design to avoid the likeliness of system failure
+
+Q: What benefits does system integration provide to large organizations?
+A: flexibility, Speed, Cost, Standardization, Data integrity, reliability and robustness
+
+Q: What can help Information Technology, energy, and financial services industry?
+A: an easy to use integrated system
+
+Q: Projects must operate in this type of environment.
+A: broad organizational environment
+
+Q: Project managers must take time to identify, understand, and manage relationships with all project stakeholders. Why is this important?
+A: Using the four frames of organizations can help meet stakeholder needs and expectations
+
+Q: Who are very important stakeholders in projects?
+A: Senior executives
+
+Q: What type of structure allows quick decision making because group members can communicate easily with each other?
+A: FUNCTIONAL STRUCTURE
