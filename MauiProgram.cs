@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
-using mindvault.Services;
+using mindvault.Services; // restored for DatabaseService & MultiplayerService
 
 namespace mindvault;
 
@@ -15,7 +15,7 @@ public static class MauiProgram
                .ConfigureFonts(fonts =>
                {
                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                   fonts.AddFont("fa-solid-900.otf", "FAS"); 
+                   fonts.AddFont("fa-solid-900.otf", "FAS");
                });
 
         // Register SQLite-backed DatabaseService as singleton
@@ -29,8 +29,7 @@ public static class MauiProgram
 
         // Multiplayer services
         builder.Services.AddSingleton<MultiplayerService>();
-        // Offline NER question generator
-        builder.Services.AddSingleton<OfflineNerQuestionService>();
+        // OfflineNerQuestionService removed
 
 #if DEBUG
         builder.Logging.AddDebug();

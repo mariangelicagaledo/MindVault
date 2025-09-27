@@ -1,5 +1,5 @@
 using System.Text;
-using mindvault.Services;
+using mindvault.Services; // still needed for ServiceHelper/DatabaseService
 using mindvault.Utils;
 using mindvault.Data;
 using Microsoft.Maui.Storage;
@@ -13,7 +13,7 @@ public partial class SummarizeContentPage : ContentPage
     public int ReviewerId { get; set; }
     public string ReviewerTitle { get; set; } = string.Empty;
 
-    readonly OfflineNerQuestionService _ner = ServiceHelper.GetRequiredService<OfflineNerQuestionService>();
+    // Removed OfflineNerQuestionService after DistilBERT removal
     readonly DatabaseService _db = ServiceHelper.GetRequiredService<DatabaseService>();
 
     string _rawContent = string.Empty;
@@ -39,7 +39,6 @@ public partial class SummarizeContentPage : ContentPage
     async void OnBack(object? sender, TappedEventArgs e) => await Navigation.PopAsync();
     async void OnClose(object? sender, TappedEventArgs e)
     {
-        // Always route back to AddFlashcardsPage for this reviewer
         var route = $"///AddFlashcardsPage?id={ReviewerId}&title={Uri.EscapeDataString(ReviewerTitle)}";
         try { await Shell.Current.GoToAsync(route); } catch { await Navigation.PopAsync(); }
     }
@@ -64,7 +63,7 @@ public partial class SummarizeContentPage : ContentPage
                 using var reader = new StreamReader(stream);
                 text = await reader.ReadToEndAsync();
             }
-            else // pptx basic text extraction (very naive)
+            else
             {
                 text = await ExtractPptxTextAsync(stream);
             }
@@ -78,7 +77,6 @@ public partial class SummarizeContentPage : ContentPage
 
     async Task<string> ExtractPptxTextAsync(Stream pptxStream)
     {
-        // PPTX is a zip. We parse slide*.xml and concatenate <a:t> text.
         try
         {
             using var ms = new MemoryStream();
@@ -108,10 +106,7 @@ public partial class SummarizeContentPage : ContentPage
             }
             return sb.ToString();
         }
-        catch
-        {
-            return string.Empty;
-        }
+        catch { return string.Empty; }
     }
 
     async void OnGenerate(object? sender, TappedEventArgs e)
@@ -119,27 +114,32 @@ public partial class SummarizeContentPage : ContentPage
         if (string.IsNullOrWhiteSpace(_rawContent)) return;
         try
         {
-            StatusLabel.Text = "Generating...";
-            var qa = await _ner.GenerateFromTextAsync(ReviewerTitle, _rawContent, maxQuestions: 25);
-            if (qa.Count == 0)
+            StatusLabel.Text = "Generating simple cards...";
+            // Basic fallback: split into sentences and create simple Q/A pairs (no NER)
+            var sentences = _rawContent.Split(new[] {'.','!','?'}, StringSplitOptions.RemoveEmptyEntries)
+                                       .Select(s => s.Trim())
+                                       .Where(s => s.Length > 10)
+                                       .Take(25)
+                                       .ToList();
+            if (sentences.Count == 0)
             {
-                StatusLabel.Text = "No entities found.";
+                StatusLabel.Text = "No suitable sentences.";
                 return;
             }
-            // Save cards directly then open editor
             int order = 1;
-            foreach (var pair in qa)
+            foreach (var s in sentences)
             {
+                var question = $"What is a key point about: {Truncate(s, 40)}?";
                 await _db.AddFlashcardAsync(new Flashcard
                 {
                     ReviewerId = ReviewerId,
-                    Question = pair.Q,
-                    Answer = pair.A,
+                    Question = question,
+                    Answer = s,
                     Learned = false,
                     Order = order++
                 });
             }
-            StatusLabel.Text = $"Added {qa.Count} cards.";
+            StatusLabel.Text = $"Added {sentences.Count} cards (NER removed).";
             await Task.Delay(600);
             await Shell.Current.GoToAsync($"///ReviewerEditorPage?id={ReviewerId}&title={Uri.EscapeDataString(ReviewerTitle)}");
         }
@@ -148,4 +148,6 @@ public partial class SummarizeContentPage : ContentPage
             StatusLabel.Text = ex.Message;
         }
     }
+
+    static string Truncate(string s, int len) => s.Length <= len ? s : s.Substring(0, len).Trim() + "...";
 }
