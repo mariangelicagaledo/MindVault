@@ -29,7 +29,13 @@ public static class MauiProgram
 
         // Multiplayer services
         builder.Services.AddSingleton<MultiplayerService>();
-        // OfflineNerQuestionService removed
+
+        // AI services and orchestrator
+        builder.Services.AddSingleton<QuestionAnsweringService>(sp =>
+            QuestionAnsweringService.CreateAsync().GetAwaiter().GetResult());
+        builder.Services.AddSingleton<QuestionGenerationService>(sp =>
+            QuestionGenerationService.CreateAsync().GetAwaiter().GetResult());
+        builder.Services.AddSingleton<FlashcardGenerator>();
 
 #if DEBUG
         builder.Logging.AddDebug();

@@ -86,7 +86,7 @@
             <TapGestureRecognizer Tapped="OnUploadFile" />
           </Border.GestureRecognizers>
         </Border>
-        <Label Text="(.pptx, .txt only)" FontSize="12" TextColor="#E0EEF7" HorizontalTextAlignment="Center" />
+        <Label Text="(.pdf, .txt only)" FontSize="12" TextColor="#E0EEF7" HorizontalTextAlignment="Center" />
 
         <!-- Generate cards button shown when there is content -->
         <Border x:Name="GenerateButton" Style="{StaticResource PrimaryPill}" IsVisible="False">

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using mindvault.Services; // still needed for ServiceHelper/DatabaseService
 using mindvault.Utils;
 using mindvault.Data;
@@ -13,10 +14,15 @@ public partial class SummarizeContentPage : ContentPage
     public int ReviewerId { get; set; }
     public string ReviewerTitle { get; set; } = string.Empty;
 
-    // Removed OfflineNerQuestionService after DistilBERT removal
     readonly DatabaseService _db = ServiceHelper.GetRequiredService<DatabaseService>();
+    readonly FileProcessor _fileProcessor = new();
+
+    QuestionAnsweringService? _qaService;
+    QuestionGenerationService? _qgService;
 
     string _rawContent = string.Empty;
+    bool _suppressEditorChanged;
+    int? _lastReviewerId; // track last deck to reset when it changes
 
     public SummarizeContentPage()
     {
@@ -28,10 +34,27 @@ public partial class SummarizeContentPage : ContentPage
     {
         base.OnNavigatedTo(args);
         DeckTitleLabel.Text = ReviewerTitle;
+
+        if (_lastReviewerId is null || _lastReviewerId != ReviewerId)
+        {
+            ResetState();
+            _lastReviewerId = ReviewerId;
+        }
+    }
+
+    void ResetState()
+    {
+        _rawContent = string.Empty;
+        _suppressEditorChanged = true;
+        try { ContentEditor.Text = string.Empty; } catch { }
+        _suppressEditorChanged = false;
+        try { GenerateButton.IsVisible = false; } catch { }
+        try { StatusLabel.Text = string.Empty; } catch { }
     }
 
     void OnEditorChanged(object? sender, TextChangedEventArgs e)
     {
+        if (_suppressEditorChanged) return;
         _rawContent = e.NewTextValue ?? string.Empty;
         GenerateButton.IsVisible = !string.IsNullOrWhiteSpace(_rawContent);
     }
@@ -47,27 +70,40 @@ public partial class SummarizeContentPage : ContentPage
     {
         try
         {
-            var fileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+            var pickOptions = new PickOptions
             {
-                { DevicePlatform.Android, new[]{"application/vnd.openxmlformats-officedocument.presentationml.presentation", "text/plain"} },
-                { DevicePlatform.iOS, new[]{"com.microsoft.powerpoint.pptx", "public.plain-text"} },
-                { DevicePlatform.MacCatalyst, new[]{"com.microsoft.powerpoint.pptx", "public.plain-text"} },
-                { DevicePlatform.WinUI, new[]{".pptx", ".txt"} },
-            });
-            var pick = await FilePicker.PickAsync(new PickOptions { PickerTitle = "Select PPTX or TXT", FileTypes = fileTypes });
-            if (pick == null) return;
-            using var stream = await pick.OpenReadAsync();
-            string text;
-            if (pick.FileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                PickerTitle = "Select PDF or TXT",
+                FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.iOS, new[] { "public.text", "com.adobe.pdf" } },
+                    { DevicePlatform.Android, new[] { "text/plain", "application/pdf" } },
+                    { DevicePlatform.WinUI, new[] { ".txt", ".pdf" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.text", "com.adobe.pdf" } }
+                })
+            };
+
+            var result = await FilePicker.PickAsync(pickOptions);
+            if (result is null) return;
+
+            var organizedText = await _fileProcessor.ProcessFileAsync(result);
+            if (string.IsNullOrWhiteSpace(organizedText))
             {
-                using var reader = new StreamReader(stream);
-                text = await reader.ReadToEndAsync();
+                await DisplayAlert("File", "Failed to extract text from the selected file.", "OK");
+                return;
             }
-            else
-            {
-                text = await ExtractPptxTextAsync(stream);
-            }
-            ContentEditor.Text = text;
+
+            _rawContent = organizedText;
+            _suppressEditorChanged = true;
+            ContentEditor.Text = string.Empty;
+            _suppressEditorChanged = false;
+
+            // Reset and log the fully processed file content for debugging (not permanent)
+            await TempLog.ClearAsync();
+            await TempLog.AppendAsync($"[UPLOAD] file={result.FileName} chars={_rawContent.Length}");
+            await TempLog.AppendAsync("[UPLOAD] FULL_FILE_PROCESSED_START\n" + _rawContent + "\n[UPLOAD] FULL_FILE_PROCESSED_END");
+
+            GenerateButton.IsVisible = true;
+            StatusLabel.Text = $"Loaded and formatted '{result.FileName}' ({_rawContent.Length} chars). Log: {TempLog.GetLogPath()}";
         }
         catch (Exception ex)
         {
@@ -75,79 +111,154 @@ public partial class SummarizeContentPage : ContentPage
         }
     }
 
-    async Task<string> ExtractPptxTextAsync(Stream pptxStream)
-    {
-        try
-        {
-            using var ms = new MemoryStream();
-            await pptxStream.CopyToAsync(ms);
-            ms.Position = 0;
-            using var archive = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read, true);
-            var sb = new StringBuilder();
-            foreach (var entry in archive.Entries.Where(e => e.FullName.StartsWith("ppt/slides/slide") && e.FullName.EndsWith(".xml")))
-            {
-                using var es = entry.Open();
-                using var reader = new StreamReader(es);
-                var xml = await reader.ReadToEndAsync();
-                int idx = 0;
-                while (true)
-                {
-                    var open = xml.IndexOf("<a:t", idx, StringComparison.OrdinalIgnoreCase);
-                    if (open == -1) break;
-                    open = xml.IndexOf('>', open);
-                    if (open == -1) break;
-                    var close = xml.IndexOf("</a:t>", open, StringComparison.OrdinalIgnoreCase);
-                    if (close == -1) break;
-                    var inner = xml.Substring(open + 1, close - open - 1);
-                    sb.Append(inner.Replace("&amp;", "&").Replace("&quot;", "\""));
-                    sb.Append(' ');
-                    idx = close + 6;
-                }
-            }
-            return sb.ToString();
-        }
-        catch { return string.Empty; }
-    }
-
     async void OnGenerate(object? sender, TappedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_rawContent)) return;
+        if (string.IsNullOrWhiteSpace(_rawContent)) { StatusLabel.Text = $"Paste or upload content first. Log: {TempLog.GetLogPath()}"; return; }
         try
         {
-            StatusLabel.Text = "Generating simple cards...";
-            // Basic fallback: split into sentences and create simple Q/A pairs (no NER)
-            var sentences = _rawContent.Split(new[] {'.','!','?'}, StringSplitOptions.RemoveEmptyEntries)
-                                       .Select(s => s.Trim())
-                                       .Where(s => s.Length > 10)
-                                       .Take(25)
-                                       .ToList();
-            if (sentences.Count == 0)
+            await TempLog.AppendAsync("[GENERATE] Tapped");
+            StatusLabel.Text = "Loading AI...";
+            _qaService ??= await QuestionAnsweringService.CreateAsync();
+            _qgService ??= await QuestionGenerationService.CreateAsync();
+            await TempLog.AppendAsync("[GENERATE] AI loaded");
+
+            // Full formatted content that the splitter will use
+            var formatted = NormalizeText(_rawContent);
+            await TempLog.AppendAsync($"[GENERATE] formatted len={formatted.Length}");
+            await TempLog.AppendAsync("[FORMATTED_FULL_START]\n" + formatted + "\n[FORMATTED_FULL_END]");
+
+            StatusLabel.Text = "Splitting content...";
+            var chunks = SplitTextIntoChunks(formatted, maxTokens: 430, minTokens: 60);
+            await TempLog.AppendAsync($"[GENERATE] chunks={chunks.Count}");
+
+            // Log every split (full text) so we see exactly what the AIs get
+            var sbSplits = new StringBuilder();
+            sbSplits.AppendLine("[SPLITS_FULL_START]");
+            for (int i = 0; i < chunks.Count; i++)
             {
-                StatusLabel.Text = "No suitable sentences.";
-                return;
+                var c = chunks[i];
+                sbSplits.AppendLine($"===== CHUNK {i + 1} LEN={c.Length} =====");
+                sbSplits.AppendLine(c);
             }
-            int order = 1;
-            foreach (var s in sentences)
+            sbSplits.AppendLine("[SPLITS_FULL_END]");
+            await TempLog.AppendAsync(sbSplits.ToString());
+
+            if (chunks.Count == 0) { StatusLabel.Text = $"Nothing to process. Log: {TempLog.GetLogPath()}"; return; }
+
+            // Configure how many questions per split
+            const int questionsPerChunk = 3; // increase/decrease as needed for debugging
+            var seenQuestions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            int created = 0, order = 1, idx = 0;
+            foreach (var chunk in chunks)
             {
-                var question = $"What is a key point about: {Truncate(s, 40)}?";
-                await _db.AddFlashcardAsync(new Flashcard
+                idx++;
+                await TempLog.AppendAsync($"[CHUNK {idx}] LEN={chunk.Length}");
+
+                for (int qn = 1; qn <= questionsPerChunk; qn++)
                 {
-                    ReviewerId = ReviewerId,
-                    Question = question,
-                    Answer = s,
-                    Learned = false,
-                    Order = order++
-                });
+                    // Generate question
+                    var question = await _qgService!.GenerateQuestionAsync(chunk);
+                    await TempLog.AppendAsync($"[QG {idx}.{qn}] -> {question}");
+                    if (string.IsNullOrWhiteSpace(question))
+                    {
+                        await TempLog.AppendAsync($"[QG {idx}.{qn}] Empty question, skipping.");
+                        continue;
+                    }
+
+                    var qKey = question.Trim();
+                    if (!seenQuestions.Add(qKey))
+                    {
+                        await TempLog.AppendAsync($"[QG {idx}.{qn}] Duplicate question across splits, skipping.");
+                        continue;
+                    }
+
+                    // Answer with DistilBERT using same chunk as context
+                    var answer = await _qaService!.AnswerQuestionAsync(chunk, question);
+                    await TempLog.AppendAsync($"[QA {idx}.{qn}] -> {answer}");
+                    if (string.IsNullOrWhiteSpace(answer) || answer.StartsWith("[No answer", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await TempLog.AppendAsync($"[QA {idx}.{qn}] Could not answer, skipping card.");
+                        continue;
+                    }
+
+                    await _db.AddFlashcardAsync(new mindvault.Data.Flashcard
+                    {
+                        ReviewerId = ReviewerId,
+                        Question = question,
+                        Answer = answer,
+                        Learned = false,
+                        Order = order++
+                    });
+                    created++;
+
+                    if (order > 60) break; // cap total
+                }
+
+                if (order > 60) break; // stop outer loop when cap reached
             }
-            StatusLabel.Text = $"Added {sentences.Count} cards (NER removed).";
-            await Task.Delay(600);
-            await Shell.Current.GoToAsync($"///ReviewerEditorPage?id={ReviewerId}&title={Uri.EscapeDataString(ReviewerTitle)}");
+
+            StatusLabel.Text = created > 0 ? $"Added {created} cards. Log: {TempLog.GetLogPath()}" : $"No flashcards generated. Log: {TempLog.GetLogPath()}";
+            await TempLog.AppendAsync($"[DONE] created={created}");
+            if (created > 0)
+                await Shell.Current.GoToAsync($"///ReviewerEditorPage?id={ReviewerId}&title={Uri.EscapeDataString(ReviewerTitle)}");
         }
         catch (Exception ex)
         {
-            StatusLabel.Text = ex.Message;
+            await TempLog.AppendAsync($"[ERROR] {ex}");
+            StatusLabel.Text = $"{ex.Message} Log: {TempLog.GetLogPath()}";
         }
     }
 
-    static string Truncate(string s, int len) => s.Length <= len ? s : s.Substring(0, len).Trim() + "...";
+    static string NormalizeText(string raw)
+    {
+        var cleaned = Regex.Replace(raw, @"-\s*\n", "");  // join hyphenated line breaks
+        cleaned = Regex.Replace(cleaned, @"\s*\n\s*", " "); // unify newlines to spaces
+        cleaned = Regex.Replace(cleaned, @" +", " ");        // collapse spaces
+        return cleaned.Trim();
+    }
+
+    static List<string> SplitTextIntoChunks(string text, int maxTokens = 430, int minTokens = 60)
+    {
+        var sentences = Regex.Split(text, @"(?<=[\.!?])\s+")
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .ToList();
+
+        var chunks = new List<string>();
+        var current = new StringBuilder();
+        int tokens = 0;
+
+        foreach (var s in sentences)
+        {
+            int sTokens = EstimateTokenCount(s);
+            if (tokens + sTokens > maxTokens && tokens >= minTokens)
+            {
+                chunks.Add(current.ToString().Trim());
+                current.Clear();
+                tokens = 0;
+            }
+            current.Append(s).Append(' ');
+            tokens += sTokens;
+        }
+        var last = current.ToString().Trim();
+        if (!string.IsNullOrEmpty(last))
+        {
+            if (EstimateTokenCount(last) < minTokens && chunks.Count > 0)
+                chunks[chunks.Count - 1] = (chunks[chunks.Count - 1] + " " + last).Trim();
+            else
+                chunks.Add(last);
+        }
+        if (chunks.Count == 0 && text.Length > 0)
+            chunks.Add(text.Trim());
+        return chunks;
+    }
+
+    static int EstimateTokenCount(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return 0;
+        var basic = Regex.Matches(s, @"\w+|[^\s\w]").Count;
+        return (int)Math.Ceiling(basic * 1.1) + 4; // inflate to account for subword and special tokens
+    }
+
+    static string Truncate(string s, int len) => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s[..len] + "...");
 }
