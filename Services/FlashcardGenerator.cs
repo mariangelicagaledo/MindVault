@@ -1,9 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Maui.Storage;
-using iText.Kernel.Pdf;
-using iText.Kernel.Pdf.Canvas.Parser;
-using iText.Kernel.Pdf.Canvas.Parser.Listener;
 
 namespace mindvault.Services;
 
@@ -13,103 +10,101 @@ public class GeneratedFlashcard
     public string Answer { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// FlashcardGenerator orchestrates the full workflow:
+/// 1) Read file (PDF/DOCX/TXT/PPTX via FileProcessor) externally.
+/// 2) Clean/normalize text.
+/// 3) Split into paragraphs.
+/// 4) For each paragraph, use quantized T5 ONNX (encoder/decoder/decoder_with_past) to generate Q&A pairs.
+/// No legacy DistilBERT or non-quantized T5 models are used here.
+/// </summary>
 public class FlashcardGenerator
 {
-    private readonly QuestionGenerationService _qgService;
-    private readonly QuestionAnsweringService _qaService;
+    private readonly T5FlashcardService _t5;
 
-    public FlashcardGenerator(QuestionGenerationService qgService, QuestionAnsweringService qaService)
+    public FlashcardGenerator(T5FlashcardService t5)
     {
-        _qgService = qgService;
-        _qaService = qaService;
+        _t5 = t5;
     }
 
     public async Task<List<GeneratedFlashcard>> GenerateFlashcardsFromFileAsync(FileResult fileResult)
     {
-        var formattedText = await SmartFormatFileContentAsync(fileResult);
-        if (string.IsNullOrWhiteSpace(formattedText)) return new();
-        return await GenerateFlashcardsFromTextAsync(formattedText);
+        using var s = await fileResult.OpenReadAsync();
+        string rawText;
+        using (var sr = new StreamReader(s))
+            rawText = await sr.ReadToEndAsync();
+        return await GenerateFlashcardsFromTextAsync(rawText);
     }
 
     public async Task<List<GeneratedFlashcard>> GenerateFlashcardsFromTextAsync(string rawText)
     {
-        if (string.IsNullOrWhiteSpace(rawText)) return new();
-        var formattedText = SmartFormatPlainText(rawText);
-        var sentences = SplitTextIntoSentences(formattedText);
-        var flashcards = new List<GeneratedFlashcard>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var text = NormalizeText(rawText);
+        var paragraphs = SplitIntoParagraphs(text);
 
-        int idx = 0;
-        foreach (var sentence in sentences)
+        var all = new List<GeneratedFlashcard>();
+        foreach (var p in paragraphs)
         {
-            idx++;
-            if (sentence.Length < 20) continue;
-
-            var question = await _qgService.GenerateQuestionAsync(sentence);
-            if (string.IsNullOrWhiteSpace(question)) continue;
-            if (!seen.Add(question.Trim())) continue; // skip duplicates
-
-            var answer = await _qaService.AnswerQuestionAsync(sentence, question);
-            if (!string.IsNullOrWhiteSpace(answer) && !answer.StartsWith("[No answer", StringComparison.OrdinalIgnoreCase))
+            if (p.Length < 24) continue;
+            var generated = await _t5.GenerateQAFromParagraphAsync(p, maxNewTokens: 160);
+            if (generated.Count == 0)
             {
-                flashcards.Add(new GeneratedFlashcard { Question = question.Trim(), Answer = answer.Trim() });
-                if (flashcards.Count >= 100) break; // safety cap
+                // Small heuristic backup in case the paragraph is too short for T5; still no DistilBERT
+                var heuristic = HeuristicQA(p);
+                if (heuristic is not null) generated.Add(heuristic);
             }
+            all.AddRange(generated);
+            if (all.Count >= 120) break; // soft cap
         }
-        return flashcards;
-    }
 
-    private static async Task<string> SmartFormatFileContentAsync(FileResult fileResult)
-    {
-        string rawText;
-        using (var stream = await fileResult.OpenReadAsync())
-        {
-            if (fileResult.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-            {
-                using var reader = new PdfReader(stream);
-                using var pdf = new PdfDocument(reader);
-                var sb = new StringBuilder();
-                for (int i = 1; i <= pdf.GetNumberOfPages(); i++)
-                {
-                    ITextExtractionStrategy strategy = new SimpleTextExtractionStrategy();
-                    sb.AppendLine(PdfTextExtractor.GetTextFromPage(pdf.GetPage(i), strategy));
-                }
-                rawText = sb.ToString();
-            }
-            else
-            {
-                using var sr = new StreamReader(stream);
-                rawText = await sr.ReadToEndAsync();
-            }
-        }
-        return SmartFormatPlainText(rawText);
-    }
-
-    private static string SmartFormatPlainText(string rawText)
-    {
-        if (string.IsNullOrWhiteSpace(rawText)) return string.Empty;
-
-        var proseLines = new List<string>();
-        foreach (var line in rawText.Split('\n'))
-        {
-            var trimmed = line.Trim();
-            if (trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length > 5)
-                proseLines.Add(trimmed);
-        }
-        var text = string.Join(' ', proseLines);
-
-        text = Regex.Replace(text, @"-\s+", "");
-        text = Regex.Replace(text, @"\s+", " ");
-        text = Regex.Replace(text, @"(?<=[a-z])\.(?=[A-Z])", ". ");
-        return text.Trim();
-    }
-
-    private static List<string> SplitTextIntoSentences(string text)
-    {
-        return Regex.Split(text, @"(?<=[\.!?])\s+")
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 20 && s.Count(c => char.IsLetterOrDigit(c)) >= 10)
-            .Take(500)
+        // Deduplicate
+        var dedup = all
+            .Where(fc => !string.IsNullOrWhiteSpace(fc.Question) && !string.IsNullOrWhiteSpace(fc.Answer))
+            .GroupBy(fc => ($"{fc.Question}\n{fc.Answer}").Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
             .ToList();
+        return dedup;
+    }
+
+    private static string NormalizeText(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+        var t = raw.Replace("\r\n", "\n");
+        t = Regex.Replace(t, @"-\s*\n", ""); // de-hyphenate line wraps
+        t = Regex.Replace(t, @"\s*\n\s*", "\n"); // keep paragraph newlines
+        t = Regex.Replace(t, @"\u00A0", " ");
+        t = Regex.Replace(t, @"[ \t]+", " ");
+        return t.Trim();
+    }
+
+    private static List<string> SplitIntoParagraphs(string text)
+    {
+        var paras = text.Split(new[] { "\n\n", "\n\r\n", "\r\n\r\n" }, StringSplitOptions.RemoveEmptyEntries)
+                         .Select(p => p.Trim())
+                         .Where(p => p.Length > 0)
+                         .ToList();
+        // If no double-newline paragraphs exist, split by single newline blocks roughly
+        if (paras.Count <= 1)
+        {
+            paras = Regex.Split(text, @"\n{2,}")
+                          .Select(p => p.Trim())
+                          .Where(p => p.Length > 0)
+                          .ToList();
+        }
+        return paras;
+    }
+
+    private static GeneratedFlashcard? HeuristicQA(string paragraph)
+    {
+        var sent = Regex.Split(paragraph, @"(?<=[\.!?])\s+").FirstOrDefault()?.Trim();
+        if (string.IsNullOrWhiteSpace(sent)) return null;
+        // crude fill-in-the-blank
+        var m = Regex.Match(sent, @"^(.{6,40}?)(\s+is|\s+are)\s+(.{6,120})$", RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var q = $"What{m.Groups[2].Value} {m.Groups[3].Value.Trim().TrimEnd('.') }?";
+            var a = m.Groups[1].Value.Trim();
+            return new GeneratedFlashcard { Question = q, Answer = a };
+        }
+        return null;
     }
 }

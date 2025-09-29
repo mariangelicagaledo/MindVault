@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using CommunityToolkit.Maui;
-using mindvault.Services; // restored for DatabaseService & MultiplayerService
+using mindvault.Services; // DatabaseService etc.
 
 namespace mindvault;
 
@@ -18,7 +18,6 @@ public static class MauiProgram
                    fonts.AddFont("fa-solid-900.otf", "FAS");
                });
 
-        // Register SQLite-backed DatabaseService as singleton
         builder.Services.AddSingleton(sp =>
         {
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "mindvault.db3");
@@ -27,14 +26,10 @@ public static class MauiProgram
             return db;
         });
 
-        // Multiplayer services
         builder.Services.AddSingleton<MultiplayerService>();
 
-        // AI services and orchestrator
-        builder.Services.AddSingleton<QuestionAnsweringService>(sp =>
-            QuestionAnsweringService.CreateAsync().GetAwaiter().GetResult());
-        builder.Services.AddSingleton<QuestionGenerationService>(sp =>
-            QuestionGenerationService.CreateAsync().GetAwaiter().GetResult());
+        // Register ONLY the quantized T5 service
+        builder.Services.AddSingleton<T5FlashcardService>(_ => T5FlashcardService.Create());
         builder.Services.AddSingleton<FlashcardGenerator>();
 
 #if DEBUG
